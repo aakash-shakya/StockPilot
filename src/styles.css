@@ -1,7 +1,31 @@
 @import "tailwindcss" source("../");
 
+:root {
+  /* Chrome / ink tokens */
+  --color-page: #f8f8f7;
+  --color-surface: #ffffff;
+  --color-border: rgba(15, 15, 14, 0.08);
+  --color-ink-primary: #16160f;
+  --color-ink-secondary: #56564d;
+  --color-ink-muted: #8c8b81;
+
+  /* Status palette — reserved for state, never reused for series identity */
+  --status-good: #0ca30c;
+  --status-warning: #b45309;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  /* Categorical series order, fixed — never cycled arbitrarily */
+  --series-blue: #2a6fdb;
+  --series-orange: #e2711d;
+  --series-aqua: #0f9d9d;
+  --series-violet: #6f5bd0;
+}
+
 body {
   @apply m-0;
+  background-color: var(--color-page);
+  color: var(--color-ink-primary);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
     "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
     sans-serif;
@@ -12,4 +36,18 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
+}
+
+.panel {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.panel-shadow {
+  box-shadow: 0 1px 2px rgba(15, 15, 14, 0.04), 0 1px 12px rgba(15, 15, 14, 0.03);
+}
+
+.input {
+  @apply w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500;
 }

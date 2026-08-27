@@ -9,11 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SuppliersRouteImport } from './routes/suppliers'
+import { Route as SimulatorRouteImport } from './routes/simulator'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as PurchaseOrdersRouteImport } from './routes/purchase-orders'
 import { Route as ProductsRouteImport } from './routes/products'
+import { Route as HealthRouteImport } from './routes/health'
+import { Route as AgentToolsRouteImport } from './routes/agent-tools'
+import { Route as AgentActionsRouteImport } from './routes/agent-actions'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProductsNewRouteImport } from './routes/products.new'
 import { Route as ProductsProductIdRouteImport } from './routes/products.$productId'
 
+const SuppliersRoute = SuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SimulatorRoute = SimulatorRouteImport.update({
+  id: '/simulator',
+  path: '/simulator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PurchaseOrdersRoute = PurchaseOrdersRouteImport.update({
   id: '/purchase-orders',
   path: '/purchase-orders',
@@ -24,10 +46,30 @@ const ProductsRoute = ProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentToolsRoute = AgentToolsRouteImport.update({
+  id: '/agent-tools',
+  path: '/agent-tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentActionsRoute = AgentActionsRouteImport.update({
+  id: '/agent-actions',
+  path: '/agent-actions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsNewRoute = ProductsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ProductsRoute,
 } as any)
 const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
   id: '/$productId',
@@ -37,40 +79,121 @@ const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agent-actions': typeof AgentActionsRoute
+  '/agent-tools': typeof AgentToolsRoute
+  '/health': typeof HealthRoute
   '/products': typeof ProductsRouteWithChildren
   '/purchase-orders': typeof PurchaseOrdersRoute
+  '/reports': typeof ReportsRoute
+  '/simulator': typeof SimulatorRoute
+  '/suppliers': typeof SuppliersRoute
   '/products/$productId': typeof ProductsProductIdRoute
+  '/products/new': typeof ProductsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agent-actions': typeof AgentActionsRoute
+  '/agent-tools': typeof AgentToolsRoute
+  '/health': typeof HealthRoute
   '/products': typeof ProductsRouteWithChildren
   '/purchase-orders': typeof PurchaseOrdersRoute
+  '/reports': typeof ReportsRoute
+  '/simulator': typeof SimulatorRoute
+  '/suppliers': typeof SuppliersRoute
   '/products/$productId': typeof ProductsProductIdRoute
+  '/products/new': typeof ProductsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agent-actions': typeof AgentActionsRoute
+  '/agent-tools': typeof AgentToolsRoute
+  '/health': typeof HealthRoute
   '/products': typeof ProductsRouteWithChildren
   '/purchase-orders': typeof PurchaseOrdersRoute
+  '/reports': typeof ReportsRoute
+  '/simulator': typeof SimulatorRoute
+  '/suppliers': typeof SuppliersRoute
   '/products/$productId': typeof ProductsProductIdRoute
+  '/products/new': typeof ProductsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/products' | '/purchase-orders' | '/products/$productId'
+  fullPaths:
+    | '/'
+    | '/agent-actions'
+    | '/agent-tools'
+    | '/health'
+    | '/products'
+    | '/purchase-orders'
+    | '/reports'
+    | '/simulator'
+    | '/suppliers'
+    | '/products/$productId'
+    | '/products/new'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/products' | '/purchase-orders' | '/products/$productId'
+  to:
+    | '/'
+    | '/agent-actions'
+    | '/agent-tools'
+    | '/health'
+    | '/products'
+    | '/purchase-orders'
+    | '/reports'
+    | '/simulator'
+    | '/suppliers'
+    | '/products/$productId'
+    | '/products/new'
   id:
-    '__root__' | '/' | '/products' | '/purchase-orders' | '/products/$productId'
+    | '__root__'
+    | '/'
+    | '/agent-actions'
+    | '/agent-tools'
+    | '/health'
+    | '/products'
+    | '/purchase-orders'
+    | '/reports'
+    | '/simulator'
+    | '/suppliers'
+    | '/products/$productId'
+    | '/products/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentActionsRoute: typeof AgentActionsRoute
+  AgentToolsRoute: typeof AgentToolsRoute
+  HealthRoute: typeof HealthRoute
   ProductsRoute: typeof ProductsRouteWithChildren
   PurchaseOrdersRoute: typeof PurchaseOrdersRoute
+  ReportsRoute: typeof ReportsRoute
+  SimulatorRoute: typeof SimulatorRoute
+  SuppliersRoute: typeof SuppliersRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/suppliers': {
+      id: '/suppliers'
+      path: '/suppliers'
+      fullPath: '/suppliers'
+      preLoaderRoute: typeof SuppliersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/simulator': {
+      id: '/simulator'
+      path: '/simulator'
+      fullPath: '/simulator'
+      preLoaderRoute: typeof SimulatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/purchase-orders': {
       id: '/purchase-orders'
       path: '/purchase-orders'
@@ -85,12 +208,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agent-tools': {
+      id: '/agent-tools'
+      path: '/agent-tools'
+      fullPath: '/agent-tools'
+      preLoaderRoute: typeof AgentToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agent-actions': {
+      id: '/agent-actions'
+      path: '/agent-actions'
+      fullPath: '/agent-actions'
+      preLoaderRoute: typeof AgentActionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/products/new': {
+      id: '/products/new'
+      path: '/new'
+      fullPath: '/products/new'
+      preLoaderRoute: typeof ProductsNewRouteImport
+      parentRoute: typeof ProductsRoute
     }
     '/products/$productId': {
       id: '/products/$productId'
@@ -104,10 +255,12 @@ declare module '@tanstack/react-router' {
 
 interface ProductsRouteChildren {
   ProductsProductIdRoute: typeof ProductsProductIdRoute
+  ProductsNewRoute: typeof ProductsNewRoute
 }
 
 const ProductsRouteChildren: ProductsRouteChildren = {
   ProductsProductIdRoute: ProductsProductIdRoute,
+  ProductsNewRoute: ProductsNewRoute,
 }
 
 const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
@@ -116,8 +269,14 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentActionsRoute: AgentActionsRoute,
+  AgentToolsRoute: AgentToolsRoute,
+  HealthRoute: HealthRoute,
   ProductsRoute: ProductsRouteWithChildren,
   PurchaseOrdersRoute: PurchaseOrdersRoute,
+  ReportsRoute: ReportsRoute,
+  SimulatorRoute: SimulatorRoute,
+  SuppliersRoute: SuppliersRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

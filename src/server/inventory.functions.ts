@@ -96,3 +96,176 @@ export const logAgentToolCallFn = createServerFn({ method: 'POST' })
 export const getRecentAgentActivityFn = createServerFn({ method: 'GET' })
   .inputValidator(z.object({ limit: z.number().optional() }).optional())
   .handler(({ data }) => inventory.getRecentAgentActivity(data?.limit))
+
+// ---------------------------------------------------------------------------
+// Supplier intelligence & comparison
+// ---------------------------------------------------------------------------
+
+export const getSupplierIntelligenceFn = createServerFn({ method: 'GET' }).handler(() =>
+  inventory.getSupplierIntelligence(),
+)
+
+export const compareSuppliersFn = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ productId: z.number() }))
+  .handler(({ data }) => inventory.compareSuppliers(data))
+
+// ---------------------------------------------------------------------------
+// Dead stock & health check
+// ---------------------------------------------------------------------------
+
+export const findDeadStockFn = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ minDaysStale: z.number().min(1).max(365).optional(), category: z.string().optional() }).optional())
+  .handler(({ data }) => inventory.findDeadStock(data ?? {}))
+
+export const getInventoryHealthCheckFn = createServerFn({ method: 'GET' }).handler(() =>
+  inventory.getInventoryHealthCheck(),
+)
+
+export const whatShouldIWorryAboutFn = createServerFn({ method: 'GET' }).handler(() =>
+  inventory.whatShouldIWorryAbout(),
+)
+
+// ---------------------------------------------------------------------------
+// Product & SKU generation
+// ---------------------------------------------------------------------------
+
+const skuPartsSchema = z.object({
+  category: z.string(),
+  brand: z.string(),
+  model: z.string(),
+  variant: z.string().optional(),
+})
+
+export const generateSkuFn = createServerFn({ method: 'GET' })
+  .inputValidator(skuPartsSchema)
+  .handler(({ data }) => inventory.generateSku(data))
+
+export const draftProductFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    skuPartsSchema.extend({
+      name: z.string(),
+      supplierId: z.number(),
+      costCents: z.number().positive(),
+      priceCents: z.number().positive(),
+      initialQuantity: z.number().min(0).optional(),
+      reorderThreshold: z.number().min(0).optional(),
+      targetCoverageDays: z.number().min(1).optional(),
+    }),
+  )
+  .handler(({ data }) => inventory.draftProduct(data))
+
+export const createProductFromDraftFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      sku: z.string(),
+      name: z.string(),
+      category: z.string(),
+      supplierId: z.number(),
+      costCents: z.number().positive(),
+      priceCents: z.number().positive(),
+      quantity: z.number().min(0).optional(),
+      reorderThreshold: z.number().min(0).optional(),
+      targetCoverageDays: z.number().min(1).optional(),
+    }),
+  )
+  .handler(({ data }) => inventory.createProductFromDraft(data))
+
+// ---------------------------------------------------------------------------
+// Agent Action Center
+// ---------------------------------------------------------------------------
+
+export const listAgentActionsFn = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ status: z.string().optional() }).optional())
+  .handler(({ data }) => inventory.listAgentActions(data ?? {}))
+
+export const proposeAgentActionFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      type: z.enum(['replenishment', 'reorder_point_change', 'purchase_order']),
+      title: z.string(),
+      reasoning: z.string(),
+      impact: z.enum(['low', 'medium', 'high']).optional(),
+      payload: z.unknown(),
+      relatedProductIds: z.array(z.number()).optional(),
+      estimatedCostCents: z.number().optional(),
+      proposedBy: actorSchema,
+    }),
+  )
+  .handler(({ data }) => inventory.proposeAgentAction(data))
+
+export const decideAgentActionFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      actionId: z.number(),
+      decision: z.enum(['approved', 'rejected']),
+      decidedBy: actorSchema,
+    }),
+  )
+  .handler(({ data }) => inventory.decideAgentAction(data))
+
+// ---------------------------------------------------------------------------
+// Smart Replenishment
+// ---------------------------------------------------------------------------
+
+export const buildReplenishmentPlanFn = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ category: z.string().optional(), days: z.number().min(1).max(90).optional() }).optional())
+  .handler(({ data }) => inventory.buildReplenishmentPlan(data ?? {}))
+
+export const createReplenishmentProposalsFn = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ category: z.string().optional(), days: z.number().min(1).max(90).optional() }).optional())
+  .handler(({ data }) => inventory.createReplenishmentProposals(data ?? {}))
+
+// ---------------------------------------------------------------------------
+// Inventory Simulator
+// ---------------------------------------------------------------------------
+
+export const simulateInventoryFn = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      productId: z.number(),
+      demandChangePct: z.number().min(-95).max(500).optional(),
+      leadTimeChangeDays: z.number().min(-30).max(90).optional(),
+      horizonDays: z.number().min(1).max(90).optional(),
+    }),
+  )
+  .handler(({ data }) => inventory.simulateInventory(data))
+
+// ---------------------------------------------------------------------------
+// Reports Studio
+// ---------------------------------------------------------------------------
+
+export const generateReportFn = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ query: z.string(), category: z.string().optional() }))
+  .handler(({ data }) => inventory.generateReport(data))
+
+export const generateReportCsvFn = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ query: z.string(), category: z.string().optional() }))
+  .handler(({ data }) => inventory.generateReportCsv(data))
+
+// ---------------------------------------------------------------------------
+// Natural-language querying
+// ---------------------------------------------------------------------------
+
+export const queryInventoryFn = createServerFn({ method: 'GET' })
+  .inputValidator(z.object({ query: z.string() }))
+  .handler(({ data }) => inventory.queryInventory(data))
+
+// ---------------------------------------------------------------------------
+// Movements & undo
+// ---------------------------------------------------------------------------
+
+export const getInventoryMovementsFn = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({ productId: z.number().optional(), type: z.string().optional(), limit: z.number().optional() }).optional(),
+  )
+  .handler(({ data }) => inventory.getInventoryMovements(data ?? {}))
+
+export const revertMovementFn = createServerFn({ method: 'POST' })
+  .inputValidator(z.object({ movementId: z.number(), actor: actorSchema }))
+  .handler(({ data }) => inventory.revertMovement(data))
+
+// ---------------------------------------------------------------------------
+// Agent Missions
+// ---------------------------------------------------------------------------
+
+export const getMissionStatusFn = createServerFn({ method: 'GET' }).handler(() => inventory.getMissionStatus())

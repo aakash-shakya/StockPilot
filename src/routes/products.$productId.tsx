@@ -1,6 +1,7 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { getProductDetailsFn, recommendReorderFn, createPurchaseOrderFn, updateStockFn } from '../server/inventory.functions.js'
+import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { Sliders } from 'lucide-react'
+import { compareSuppliersFn, getProductDetailsFn, recommendReorderFn, createPurchaseOrderFn, updateStockFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 import { RiskBadge, TrendLabel } from '../components/badges.js'
 
@@ -25,6 +26,8 @@ function ProductDetail() {
   const [adjustNote, setAdjustNote] = useState('')
   const [adjusting, setAdjusting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const [comparison, setComparison] = useState<Awaited<ReturnType<typeof compareSuppliersFn>> | null>(null)
+  const [comparing, setComparing] = useState(false)
 
   if (!product) {
     return <div className="max-w-3xl mx-auto px-4 py-8 text-gray-500">Product not found.</div>
@@ -80,6 +83,16 @@ function ProductDetail() {
     }
   }
 
+  async function handleCompare() {
+    setComparing(true)
+    try {
+      const result = await compareSuppliersFn({ data: { productId: product.productId } })
+      setComparison(result)
+    } finally {
+      setComparing(false)
+    }
+  }
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="flex items-start justify-between mb-6">
@@ -89,7 +102,17 @@ function ProductDetail() {
             {product.sku} · {product.category} · supplied by {product.supplierName}
           </p>
         </div>
-        <RiskBadge level={product.riskLevel} />
+        <div className="flex items-center gap-3">
+          <Link
+            to="/simulator"
+            search={{ productId: product.productId }}
+            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900"
+          >
+            <Sliders className="w-4 h-4" />
+            Simulate
+          </Link>
+          <RiskBadge level={product.riskLevel} />
+        </div>
       </div>
 
       {message && <div className="mb-6 text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-lg">{message}</div>}
@@ -180,6 +203,58 @@ function ProductDetail() {
             </button>
           </form>
         </div>
+      </div>
+
+      <div className="panel panel-shadow p-6 mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900">Compare suppliers</h2>
+          {!comparison && (
+            <button
+              onClick={() => void handleCompare()}
+              disabled={comparing}
+              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
+            >
+              {comparing ? 'Comparing…' : 'Compare suppliers'}
+            </button>
+          )}
+        </div>
+        {comparing && <p className="text-sm text-gray-400">Comparing…</p>}
+        {comparison && !comparing && (
+          <div>
+            {comparison.recommendationReason && (
+              <p className="text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-lg mb-4">{comparison.recommendationReason}</p>
+            )}
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-gray-500 border-b">
+                  <th className="py-2 pr-2">Supplier</th>
+                  <th className="py-2 pr-2">Unit cost</th>
+                  <th className="py-2 pr-2">Lead time (+ delay)</th>
+                  <th className="py-2 pr-2">Reliability</th>
+                  <th className="py-2 pr-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparison.options.map((o) => (
+                  <tr key={o.supplierId} className="border-b last:border-0">
+                    <td className="py-2 pr-2 font-medium text-gray-900">
+                      {o.supplierName}
+                      {o.isPrimary && <span className="text-xs text-gray-400 ml-1">(primary)</span>}
+                    </td>
+                    <td className="py-2 pr-2 text-gray-600">{formatMoney(o.unitCostCents)}</td>
+                    <td className="py-2 pr-2 text-gray-600">{o.totalLeadDays}d</td>
+                    <td className="py-2 pr-2 text-gray-600">{o.reliabilityScore !== null ? `${o.reliabilityScore}/100` : 'n/a'}</td>
+                    <td className="py-2 pr-2">
+                      {o.supplierId === comparison.recommendedSupplierId && (
+                        <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Recommended</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
