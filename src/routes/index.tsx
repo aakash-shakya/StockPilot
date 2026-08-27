@@ -1,24 +1,35 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { AlertTriangle, Boxes, Package, TimerReset } from 'lucide-react'
-import { findLowStockFn, getInventorySummaryFn, getPurchaseOrdersFn, getRecentAgentActivityFn } from '../server/inventory.functions.js'
+import { AlertTriangle, Boxes, HeartPulse, Package, ShieldCheck, TimerReset, Trophy } from 'lucide-react'
+import {
+  findLowStockFn,
+  getInventorySummaryFn,
+  getMissionStatusFn,
+  getPurchaseOrdersFn,
+  getRecentAgentActivityFn,
+  listAgentActionsFn,
+  whatShouldIWorryAboutFn,
+} from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
-import { RiskBadge, TrendLabel, PoStatusBadge } from '../components/badges.js'
+import { RiskBadge, TrendLabel, PoStatusBadge, SeverityBadge } from '../components/badges.js'
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
   loader: async () => {
-    const [summary, atRisk, purchaseOrders, recentActivity] = await Promise.all([
+    const [summary, atRisk, purchaseOrders, recentActivity, worryAbout, pendingActions, mission] = await Promise.all([
       getInventorySummaryFn(),
       findLowStockFn({ data: { days: 7 } }),
       getPurchaseOrdersFn(),
       getRecentAgentActivityFn({ data: { limit: 8 } }),
+      whatShouldIWorryAboutFn(),
+      listAgentActionsFn({ data: { status: 'pending' } }),
+      getMissionStatusFn(),
     ])
-    return { summary, atRisk, purchaseOrders, recentActivity }
+    return { summary, atRisk, purchaseOrders, recentActivity, worryAbout, pendingActions, mission }
   },
 })
 
 function Dashboard() {
-  const { summary, atRisk, purchaseOrders, recentActivity } = Route.useLoaderData()
+  const { summary, atRisk, purchaseOrders, recentActivity, worryAbout, pendingActions, mission } = Route.useLoaderData()
   const actionable = purchaseOrders.filter((po) => po.status !== 'received').slice(0, 5)
 
   return (
@@ -40,6 +51,58 @@ function Dashboard() {
           value={summary.avgCoverageDays !== null ? `${summary.avgCoverageDays}d` : '—'}
           sub="across all products"
         />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        <div className="lg:col-span-2 panel panel-shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <HeartPulse className="w-4 h-4 text-gray-400" />
+              <h2 className="text-lg font-semibold text-gray-900">What should I worry about today?</h2>
+            </div>
+            <Link to="/health" className="text-sm text-blue-600 hover:underline">
+              Full health check
+            </Link>
+          </div>
+          <p className="text-sm text-gray-500 mb-3">{worryAbout.summary}</p>
+          {worryAbout.items.length === 0 ? (
+            <p className="text-sm text-gray-500">Nothing to worry about right now.</p>
+          ) : (
+            <div className="space-y-2">
+              {worryAbout.items.slice(0, 4).map((item, idx) => (
+                <div key={idx} className="flex items-start justify-between gap-3 text-sm border-b last:border-0 pb-2 last:pb-0">
+                  <p className="text-gray-700">{item.description}</p>
+                  <SeverityBadge severity={item.severity} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="panel panel-shadow p-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-gray-400" />
+              <h2 className="text-lg font-semibold text-gray-900">Agent Actions</h2>
+            </div>
+            <Link to="/agent-actions" className="text-sm text-blue-600 hover:underline">
+              Review
+            </Link>
+          </div>
+          <p className="text-3xl font-bold text-gray-900">{pendingActions.length}</p>
+          <p className="text-xs text-gray-400 mb-4">pending your approval</p>
+
+          <div className="flex items-center gap-2 mb-2 pt-2 border-t">
+            <Trophy className="w-4 h-4 text-gray-400" />
+            <p className="text-sm font-medium text-gray-900">{mission.title}</p>
+          </div>
+          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden mb-1">
+            <div className="h-full bg-gray-900" style={{ width: `${mission.percentComplete}%` }} />
+          </div>
+          <p className="text-xs text-gray-400">
+            {mission.completedCount}/{mission.totalCount} complete
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -79,3 +79,40 @@ export const agentToolCalls = pgTable('agent_tool_calls', {
   consequential: boolean().notNull().default(false),
   createdAt: timestamp('created_at').defaultNow(),
 })
+
+// Alternate supplier options for a product, used for supplier comparison /
+// procurement optimization. The primary option always mirrors products.supplierId
+// and products.costCents so a product always has at least one row here.
+export const productSuppliers = pgTable('product_suppliers', {
+  id: serial().primaryKey(),
+  productId: integer('product_id')
+    .notNull()
+    .references(() => products.id),
+  supplierId: integer('supplier_id')
+    .notNull()
+    .references(() => suppliers.id),
+  unitCostCents: integer('unit_cost_cents').notNull(),
+  leadTimeDays: integer('lead_time_days').notNull(),
+  isPrimary: boolean('is_primary').notNull().default(false),
+})
+
+// Proposals raised by the agent (or a human workflow) that require an explicit
+// approve/reject decision before anything consequential happens. Distinct from
+// agentToolCalls, which is a raw call log — this is the human-in-the-loop queue.
+export const agentActions = pgTable('agent_actions', {
+  id: serial().primaryKey(),
+  type: text().notNull(), // 'replenishment' | 'reorder_point_change' | 'purchase_order'
+  title: text().notNull(),
+  reasoning: text().notNull(),
+  impact: text().notNull().default('low'), // 'low' | 'medium' | 'high'
+  status: text().notNull().default('pending'), // 'pending' | 'approved' | 'rejected' | 'executed' | 'failed'
+  payload: text().notNull(), // JSON-encoded action-specific data needed to execute it
+  relatedProductIds: text('related_product_ids'), // JSON array of product ids, for display
+  estimatedCostCents: integer('estimated_cost_cents'),
+  proposedBy: text('proposed_by').notNull().default('agent'), // 'human' | 'agent'
+  createdAt: timestamp('created_at').defaultNow(),
+  decidedAt: timestamp('decided_at'),
+  decidedBy: text('decided_by'), // 'human' | 'agent'
+  executedAt: timestamp('executed_at'),
+  resultSummary: text('result_summary'),
+})
