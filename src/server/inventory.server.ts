@@ -984,10 +984,62 @@ export async function decideAgentAction(input: {
 }
 
 // ---------------------------------------------------------------------------
+// Supplier scoring helper — used by buildReplenishmentPlan to avoid N+1
+// ---------------------------------------------------------------------------
+
+interface ReplanItem {
+  productId: number
+  sku: string
+  name: string
+  currentQuantity: number
+  coverageDays: number | null
+  riskLevel: RiskLevel
+  urgency: number
+  suggestedQuantity: number
+  recommendedSupplierId: number
+  recommendedSupplierName: string
+  unitCostCents: number
+  estimatedCostCents: number
+  recommendationReason: string | null
+}
+
+function scoreSupplierOption(
+  option: { supplierId: number; supplierName: string; unitCostCents: number; leadTimeDays: number; delayDays: number; isPrimary: boolean },
+  intel: Map<number, { onTimePct: number | null; reliabilityScore: number | null; avgDelayDays: number | null }>,
+) {
+  const i = intel.get(option.supplierId)
+  const reliabilityScore = i?.reliabilityScore ?? 50
+  const totalLeadDays = option.leadTimeDays + option.delayDays
+  const score = reliabilityScore - totalLeadDays * 2 - option.unitCostCents / 100
+  return {
+    ...option,
+    totalLeadDays,
+    onTimePct: i?.onTimePct ?? null,
+    reliabilityScore: i?.reliabilityScore ?? null,
+    score,
+  }
+}
+
+function groupItemsBySupplier(items: ReplanItem[]) {
+  const bySupplier = new Map<number, ReplanItem[]>()
+  for (const item of items) {
+    const list = bySupplier.get(item.recommendedSupplierId) ?? []
+    list.push(item)
+    bySupplier.set(item.recommendedSupplierId, list)
+  }
+  return Array.from(bySupplier.entries()).map(([supplierId, group]) => ({
+    supplierId,
+    supplierName: group[0].recommendedSupplierName,
+    items: group,
+    subtotalCents: group.reduce((sum, i) => sum + i.estimatedCostCents, 0),
+  }))
+}
+
+// ---------------------------------------------------------------------------
 // Smart Replenishment — the flagship multi-tool workflow
 // ---------------------------------------------------------------------------
 
-export async function buildReplenishmentPlan(input: { category?: string; days?: number } = {}) {
+export async function buildReplenishmentPlan(input: { category?: string; days?: number; budgetCents?: number } = {}) {
   const days = input.days ?? 10
   const low = await findLowStock({ days, category: input.category })
   if (!low.length) {
@@ -997,11 +1049,47 @@ export async function buildReplenishmentPlan(input: { category?: string; days?: 
   const reorder = await recommendReorder({ productIds: low.map((p) => p.productId) })
   const candidates = reorder.filter((r) => r.suggestedQuantity > 0)
 
+  // Batch-load supplier intelligence once (avoids N+1 from per-product compareSuppliers)
+  const intelligence = await getSupplierIntelligence()
+  const intelById = new Map(intelligence.map((s) => [s.supplierId, s]))
+
+  // Batch-load all product-supplier options for candidate products
+  const candidateIds = candidates.map((c) => c.productId)
+  const allOptions = await db
+    .select({
+      productId: productSuppliers.productId,
+      supplierId: productSuppliers.supplierId,
+      supplierName: suppliers.name,
+      unitCostCents: productSuppliers.unitCostCents,
+      leadTimeDays: productSuppliers.leadTimeDays,
+      delayDays: suppliers.delayDays,
+      isPrimary: productSuppliers.isPrimary,
+    })
+    .from(productSuppliers)
+    .innerJoin(suppliers, eq(productSuppliers.supplierId, suppliers.id))
+    .where(inArray(productSuppliers.productId, candidateIds))
+
+  const optionsByProduct = new Map<number, typeof allOptions>()
+  for (const opt of allOptions) {
+    const list = optionsByProduct.get(opt.productId) ?? []
+    list.push(opt)
+    optionsByProduct.set(opt.productId, list)
+  }
+
+  const urgencyScore = (r: (typeof candidates)[number]) =>
+    r.riskLevel === 'critical' ? 1 : r.riskLevel === 'warning' ? 2 : 3
+
   const items = []
   for (const r of candidates) {
-    const comparison = await compareSuppliers({ productId: r.productId })
-    const chosen =
-      comparison.options.find((o) => o.supplierId === comparison.recommendedSupplierId) ?? comparison.options[0]
+    const options = optionsByProduct.get(r.productId) ?? []
+    const scored = options.map((o) => scoreSupplierOption(o, intelById))
+    const chosen = scored.reduce<(typeof scored)[number] | null>(
+      (best, cur) => (best === null || cur.score > best.score ? cur : best),
+      null,
+    )
+    const recommendationReason = chosen
+      ? `${chosen.supplierName} offers the best balance of lead time (${chosen.totalLeadDays}d), cost ($${(chosen.unitCostCents / 100).toFixed(2)}), and reliability${chosen.reliabilityScore !== null ? ` (${chosen.reliabilityScore}/100)` : ''}.`
+      : null
     items.push({
       productId: r.productId,
       sku: r.sku,
@@ -1009,16 +1097,41 @@ export async function buildReplenishmentPlan(input: { category?: string; days?: 
       currentQuantity: r.currentQuantity,
       coverageDays: r.coverageDays,
       riskLevel: r.riskLevel,
+      urgency: urgencyScore(r),
       suggestedQuantity: r.suggestedQuantity,
       recommendedSupplierId: chosen?.supplierId ?? r.supplierId,
       recommendedSupplierName: chosen?.supplierName ?? r.supplierName,
       unitCostCents: chosen?.unitCostCents ?? 0,
       estimatedCostCents: (chosen?.unitCostCents ?? 0) * r.suggestedQuantity,
-      recommendationReason: comparison.recommendationReason,
+      recommendationReason,
     })
   }
 
-  const bySupplier = new Map<number, typeof items>()
+  // Budget-aware prioritization: sort by urgency, then fit within budget
+  if (input.budgetCents && input.budgetCents > 0) {
+    items.sort((a, b) => a.urgency - b.urgency || a.estimatedCostCents - b.estimatedCostCents)
+    let remaining = input.budgetCents
+    const approved: ReplanItem[] = []
+    for (const item of items) {
+      if (item.estimatedCostCents <= remaining) {
+        remaining -= item.estimatedCostCents
+        approved.push(item)
+      }
+    }
+    const rejected = items.filter((i) => !approved.includes(i))
+    return {
+      generatedAt: new Date().toISOString(),
+      items: approved,
+      rejectedItems: rejected,
+      groupedBySupplier: groupItemsBySupplier(approved),
+      totalEstimatedCostCents: approved.reduce((sum, i) => sum + i.estimatedCostCents, 0),
+      budgetCents: input.budgetCents,
+      budgetUsedCents: input.budgetCents - remaining,
+      budgetRemainingCents: remaining,
+    }
+  }
+
+  const bySupplier = new Map<number, ReplanItem[]>()
   for (const item of items) {
     const list = bySupplier.get(item.recommendedSupplierId) ?? []
     list.push(item)
@@ -1052,17 +1165,17 @@ export async function createReplenishmentProposals(input: { category?: string; d
           title: `Replenish ${group.items.length} product(s) from ${group.supplierName}`,
           reasoning: group.items
             .map(
-              (i) =>
-                `${i.name}: ${i.coverageDays ?? 0} day(s) of coverage left, ${i.riskLevel} risk — order ${i.suggestedQuantity} unit(s). ${i.recommendationReason ?? ''}`,
+              (item: ReplanItem) =>
+                `${item.name}: ${item.coverageDays ?? 0} day(s) of coverage left, ${item.riskLevel} risk — order ${item.suggestedQuantity} unit(s). ${item.recommendationReason ?? ''}`,
             )
             .join(' '),
           impact: group.subtotalCents > 200000 ? 'high' : group.subtotalCents > 50000 ? 'medium' : 'low',
           payload: JSON.stringify({
             supplierId: group.supplierId,
-            items: group.items.map((i) => ({ productId: i.productId, quantity: i.suggestedQuantity })),
+            items: group.items.map((item: ReplanItem) => ({ productId: item.productId, quantity: item.suggestedQuantity })),
             notes: 'Smart Replenishment proposal',
           }),
-          relatedProductIds: JSON.stringify(group.items.map((i) => i.productId)),
+          relatedProductIds: JSON.stringify(group.items.map((item: ReplanItem) => item.productId)),
           estimatedCostCents: group.subtotalCents,
           proposedBy: 'agent',
         })
