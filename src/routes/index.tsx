@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { AlertTriangle, ArrowRight, Boxes, HeartPulse, Package, ShieldCheck, TimerReset, Trophy } from 'lucide-react'
+import { ArrowRight, Boxes, HeartPulse, ShieldCheck, Trophy } from 'lucide-react'
 import {
   findLowStockFn,
   getInventorySummaryFn,
@@ -283,37 +283,4 @@ function Dashboard() {
   )
 }
 
-function StatCard({
-  icon: Icon,
-  color,
-  bg,
-  accent,
-  title,
-  value,
-  sub,
-  highlight,
-}: {
-  icon: typeof Package
-  color: string
-  bg: string
-  accent: string
-  title: string
-  value: string
-  sub: string
-  highlight?: boolean
-}) {
-  return (
-    <div className={`panel panel-shadow p-4 ${accent} ${highlight ? 'bg-gradient-to-br from-white to-red-50/30' : 'bg-white'}`}>
-      <div className="flex items-center gap-3">
-        <div className={`${bg} ${color} p-2.5 rounded-xl shadow-sm border border-white`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs text-slate-500 font-medium tracking-wide">{title}</p>
-          <p className="text-2xl font-bold text-slate-900 leading-tight">{value}</p>
-          <p className="text-[11px] text-slate-400 truncate">{sub}</p>
-        </div>
-      </div>
-    </div>
-  )
-}
+

@@ -26,11 +26,15 @@ import {
   generateReportFn,
   generateSkuSchema,
   generateSkuFn,
+  getEmergencyImpactSchema,
+  getEmergencyImpactFn,
+  getBusinessPoliciesFn,
   getInventoryHealthCheckSchema,
   getInventoryHealthCheckFn,
   getInventoryMovementsSchema,
   getInventoryMovementsFn,
   getInventorySummaryFn,
+  getMorningBriefingFn,
   getProductDetailsSchema,
   getProductDetailsFn,
   getPurchaseOrdersSchema,
@@ -41,6 +45,7 @@ import {
   getSupplierIntelligenceFn,
   getSuppliersSchema,
   getSuppliersFn,
+  investigateInventoryFn,
   listAgentActionsSchema,
   listAgentActionsFn,
   logAgentToolCallFn,
@@ -57,6 +62,8 @@ import {
   searchProductsFn,
   simulateInventorySchema,
   simulateInventoryFn,
+  updateBusinessPolicySchema,
+  updateBusinessPolicyFn,
   updateStockSchema,
   updateStockFn,
   whatShouldIWorryAboutSchema,
@@ -160,7 +167,7 @@ const READ_TOOLS: ToolDef[] = [
     },
     readOnly: true,
     run: async () => {
-      const summary = await (getInventorySummaryFn as any)()
+      const summary = await getInventorySummaryFn()
       return {
         summary: `${summary.totalProducts} products, ${summary.criticalCount} critical and ${summary.warningCount} at warning level`,
         payload: summary,
@@ -276,7 +283,7 @@ const READ_TOOLS: ToolDef[] = [
     },
     readOnly: true,
     run: async () => {
-      const rows = await (getSuppliersFn as any)()
+      const rows = await getSuppliersFn()
       return { summary: `${rows.length} supplier(s)`, payload: rows }
     },
   },
@@ -342,7 +349,7 @@ const ANALYZE_TOOLS: ToolDef[] = [
     },
     readOnly: true,
     run: async () => {
-      const rows = await (getSupplierIntelligenceFn as any)()
+      const rows = await getSupplierIntelligenceFn()
       return { summary: `${rows.length} supplier(s) rated`, payload: rows }
     },
   },
@@ -400,7 +407,7 @@ const ANALYZE_TOOLS: ToolDef[] = [
     },
     readOnly: true,
     run: async () => {
-      const result = await (getInventoryHealthCheckFn as any)()
+      const result = await getInventoryHealthCheckFn()
       return {
         summary: `${result.totalIssues} issue(s): ${result.highSeverityCount} high, ${result.mediumSeverityCount} medium, ${result.lowSeverityCount} low`,
         payload: result,
@@ -422,7 +429,7 @@ const ANALYZE_TOOLS: ToolDef[] = [
     },
     readOnly: true,
     run: async () => {
-      const result = await (whatShouldIWorryAboutFn as any)()
+      const result = await whatShouldIWorryAboutFn()
       return { summary: result.summary, payload: result }
     },
   },
@@ -514,7 +521,7 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'build_replenishment_plan',
     title: 'Build a Smart Replenishment plan',
     description:
-      'Compose the full replenishment workflow read-only: finds every at-risk product, computes a suggested reorder quantity for each, compares suppliers per product, and groups everything into one draft purchase order per recommended supplier with cost subtotals. This does NOT create anything — call propose_replenishment to turn this into pending approvals, or create_purchase_order per group once a human approves.',
+      'Compose the full replenishment workflow read-only: finds every at-risk product, computes a suggested reorder quantity for each, compares suppliers per product, and groups everything into one draft purchase order per recommended supplier with cost subtotals. Optionally filter by category and set a budget cap — items are prioritized by urgency and fitted within budget. This does NOT create anything — call propose_replenishment to turn this into pending approvals, or create_purchase_order per group once a human approves.',
     inputSchema: toJsonSchema(buildReplenishmentPlanSchema),
     annotations: {
       readOnlyHint: true,
@@ -529,6 +536,72 @@ const ANALYZE_TOOLS: ToolDef[] = [
       return {
         summary: `${plan.items.length} product(s) across ${plan.groupedBySupplier.length} supplier(s), est. ${money(plan.totalEstimatedCostCents)}`,
         payload: plan,
+      }
+    },
+  },
+  {
+    name: 'get_morning_briefing',
+    title: 'Get morning briefing',
+    description:
+      'Get a comprehensive morning briefing in one call: health score (0-100), urgent issues, pending approvals, reorder budget, dead-stock capital, supplier alerts, and the single top action to take. Use this as the first call at the start of any session to get the full picture.',
+    inputSchema: toJsonSchema(whatShouldIWorryAboutSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get morning briefing',
+    },
+    readOnly: true,
+    run: async () => {
+      const result = await getMorningBriefingFn()
+      return {
+        summary: `Health score ${result.healthScore}/100 — ${result.summary}`,
+        payload: result,
+      }
+    },
+  },
+  {
+    name: 'get_emergency_impact',
+    title: 'Analyze supplier emergency impact',
+    description:
+      'Analyze the impact of a supplier failure or delay: which products are affected, which will stock out, how many days until stockout, alternate suppliers available, and total revenue at risk. Use this when a supplier reports a delay or you suspect a supply chain disruption.',
+    inputSchema: toJsonSchema(getEmergencyImpactSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Analyze supplier emergency impact',
+    },
+    readOnly: true,
+    run: async (input) => {
+      const result = await getEmergencyImpactFn({ data: input })
+      return {
+        summary: `${result.affectedProducts} product(s) affected, ${result.stockoutRisk} at stockout risk, ${result.totalRevenueAtRisk} revenue at risk`,
+        payload: result,
+      }
+    },
+  },
+  {
+    name: 'investigate_inventory',
+    title: 'Investigate inventory discrepancies',
+    description:
+      'Run a full inventory audit: detect negative stock, suspicious adjustments without notes, receiving discrepancies (ordered vs received), duplicate SKUs, and stale products with no movement in 30+ days. Returns every anomaly found with severity and recommended action.',
+    inputSchema: toJsonSchema(whatShouldIWorryAboutSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Investigate inventory discrepancies',
+    },
+    readOnly: true,
+    run: async () => {
+      const result = await investigateInventoryFn()
+      return {
+        summary: `${result.totalIssues} issue(s): ${result.highSeverityCount} high, ${result.mediumSeverityCount} medium, ${result.lowSeverityCount} low`,
+        payload: result,
       }
     },
   },
@@ -780,6 +853,44 @@ const COLLABORATE_TOOLS: ToolDef[] = [
       return { summary: `Action ${input.actionId} rejected`, payload: result }
     },
   },
+  {
+    name: 'get_business_policies',
+    title: 'Get business policies',
+    description:
+      'Get all configurable business policies: budget thresholds, safety stock percent, target coverage days, dead stock window, supplier concentration limits, and auto-approval thresholds. These policies govern how the agent makes replenishment and approval decisions.',
+    inputSchema: toJsonSchema(whatShouldIWorryAboutSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get business policies',
+    },
+    readOnly: true,
+    run: async () => {
+      const policies = await getBusinessPoliciesFn()
+      return { summary: `${policies.length} policy(s) configured`, payload: policies }
+    },
+  },
+  {
+    name: 'update_business_policy',
+    title: 'Update a business policy',
+    description:
+      'Update a single business policy value. This is CONSEQUENTIAL — it changes how the agent makes decisions. Only call this after the shop owner has explicitly approved the specific change. Example: set autoApproveThreshold to "75000" to auto-approve POs under $750.',
+    inputSchema: toJsonSchema(updateBusinessPolicySchema),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Update a business policy',
+    },
+    readOnly: false,
+    run: async (input) => {
+      const result = await updateBusinessPolicyFn({ data: input })
+      return { summary: `Updated ${result.key} to ${result.value}`, payload: result }
+    },
+  },
 ]
 
 const TOOLS: ToolDef[] = [...READ_TOOLS, ...ANALYZE_TOOLS, ...CREATE_TOOLS, ...MUTATE_TOOLS, ...COLLABORATE_TOOLS]
@@ -803,6 +914,16 @@ export const TOOL_CATALOG: Array<{ category: string; tools: ToolCatalogEntry[] }
 }))
 
 let registered = false
+
+const DEMO_PROMPT = {
+  name: 'protect_my_inventory',
+  title: 'Protect My Inventory',
+  description:
+    'Run a full inventory protection workflow: morning briefing → identify risks → build a budget-aware replenishment plan → propose purchase orders for approval. Say "protect my inventory with a $3000 budget" to start.',
+  arguments: [
+    { name: 'budget', description: 'Max purchasing budget in dollars (e.g. 3000)', required: false },
+  ],
+}
 
 export async function registerInventoryWebMCPTools(): Promise<() => void> {
   if (typeof document === 'undefined') return () => {}
@@ -859,6 +980,23 @@ export async function registerInventoryWebMCPTools(): Promise<() => void> {
         },
         { signal: controller.signal },
       )
+    }
+
+    // Register demo prompt if supported
+    if (modelContext.registerPrompt) {
+      try {
+        await modelContext.registerPrompt(
+          {
+            name: DEMO_PROMPT.name,
+            title: DEMO_PROMPT.title,
+            description: DEMO_PROMPT.description,
+            arguments: DEMO_PROMPT.arguments,
+          },
+          { signal: controller.signal },
+        )
+      } catch {
+        // Prompt registration not supported — graceful degradation
+      }
     }
   } catch (err) {
     console.warn('[WebMCP] registration failed', err)
