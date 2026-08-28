@@ -69,13 +69,21 @@ function AgentActionsPage() {
         <div className="mb-6 text-sm bg-blue-50 text-blue-700 px-4 py-2.5 rounded-lg border border-blue-100">{message}</div>
       )}
 
-      <h2 className="text-sm font-semibold text-gray-900 mb-3">Pending ({pending.length})</h2>
+      <h2 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+        <span className="w-1 h-4 bg-amber-500 rounded-full" />
+        Pending <span className="bg-amber-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">{pending.length}</span>
+      </h2>
       {pending.length === 0 ? (
         <p className="text-sm text-gray-400 mb-8">Nothing waiting on you.</p>
       ) : (
         <div className="space-y-3 mb-8">
           {pending.map((action) => (
-            <div key={action.id} className="panel panel-shadow p-5">
+            <div
+              key={action.id}
+              className={`panel panel-shadow p-5 border-l-4 ${
+                action.impact === 'high' ? 'border-l-red-500' : action.impact === 'medium' ? 'border-l-amber-500' : 'border-l-slate-300'
+              }`}
+            >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -109,12 +117,19 @@ function AgentActionsPage() {
         </div>
       )}
 
-      <h2 className="text-sm font-semibold text-gray-900 mb-3">History</h2>
+      <h2 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+        <span className="w-1 h-4 bg-slate-700 rounded-full" />
+        History <span className="bg-slate-900 text-white px-2 py-0.5 rounded-full text-xs font-bold">{decided.length}</span>
+      </h2>
       {decided.length === 0 ? (
         <p className="text-sm text-gray-400">No decided actions yet.</p>
       ) : (
-        <div className="panel panel-shadow overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-slate-600">
+          <div className="card-header-slate px-5 py-3">
+            <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Action history</p>
+          </div>
+          <div className="overflow-x-auto scrollbar-none">
+            <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
                 <th className="px-5 py-3">Title</th>
@@ -141,7 +156,8 @@ function AgentActionsPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
 

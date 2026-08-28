@@ -36,7 +36,7 @@ function ProductDetail() {
   async function handleRecommend() {
     setRecommending(true)
     try {
-      const [rec] = await recommendReorderFn({ data: { productIds: [product.productId] } })
+      const [rec] = await recommendReorderFn({ data: { productIds: [product!.productId] } })
       setRecommendation(rec ?? null)
     } finally {
       setRecommending(false)
@@ -49,9 +49,9 @@ function ProductDetail() {
     try {
       const po = await createPurchaseOrderFn({
         data: {
-          supplierId: product.supplierId,
-          items: [{ productId: product.productId, quantity: recommendation.suggestedQuantity }],
-          notes: `Reorder for ${product.name}`,
+          supplierId: product!.supplierId,
+          items: [{ productId: product!.productId, quantity: recommendation.suggestedQuantity }],
+          notes: `Reorder for ${product!.name}`,
           createdBy: 'human',
         },
       })
@@ -70,7 +70,7 @@ function ProductDetail() {
     setAdjusting(true)
     try {
       await updateStockFn({
-        data: { productId: product.productId, quantityDelta: delta, type: adjustType, note: adjustNote || undefined, actor: 'human' },
+        data: { productId: product!.productId, quantityDelta: delta, type: adjustType, note: adjustNote || undefined, actor: 'human' },
       })
       setAdjustQty('')
       setAdjustNote('')
@@ -86,7 +86,7 @@ function ProductDetail() {
   async function handleCompare() {
     setComparing(true)
     try {
-      const result = await compareSuppliersFn({ data: { productId: product.productId } })
+      const result = await compareSuppliersFn({ data: { productId: product!.productId } })
       setComparison(result)
     } finally {
       setComparing(false)
@@ -127,14 +127,14 @@ function ProductDetail() {
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <Stat label="In stock" value={String(product.quantity)} />
-        <Stat label="Reorder at" value={String(product.reorderThreshold)} />
-        <Stat label="Coverage" value={product.coverageDays !== null ? `${product.coverageDays}d` : '—'} />
-        <Stat label="Projected stockout" value={product.projectedStockoutDate ?? '—'} />
-        <Stat label="Recent velocity" value={`${product.recentDailyVelocity}/day`} extra={<TrendLabel trend={product.trend} />} />
-        <Stat label="Baseline velocity" value={`${product.baselineDailyVelocity}/day`} />
-        <Stat label="Lead time" value={`${product.leadTimeDays}d${product.delayDays ? ` (+${product.delayDays}d delay)` : ''}`} />
-        <Stat label="Cost / Price" value={`${formatMoney(product.costCents)} / ${formatMoney(product.priceCents)}`} />
+        <Stat label="In stock" value={String(product.quantity)} accent="stat-accent-blue" />
+        <Stat label="Reorder at" value={String(product.reorderThreshold)} accent="stat-accent-slate" />
+        <Stat label="Coverage" value={product.coverageDays !== null ? `${product.coverageDays}d` : '—'} accent="stat-accent-violet" />
+        <Stat label="Projected stockout" value={product.projectedStockoutDate ?? '—'} accent="stat-accent-amber" />
+        <Stat label="Recent velocity" value={`${product.recentDailyVelocity}/day`} extra={<TrendLabel trend={product.trend} />} accent="stat-accent-emerald" />
+        <Stat label="Baseline velocity" value={`${product.baselineDailyVelocity}/day`} accent="stat-accent-slate" />
+        <Stat label="Lead time" value={`${product.leadTimeDays}d${product.delayDays ? ` (+${product.delayDays}d delay)` : ''}`} accent="stat-accent-amber" />
+        <Stat label="Cost / Price" value={`${formatMoney(product.costCents)}${(product as any).priceCents ? ` / ${formatMoney((product as any).priceCents)}` : ''}`} accent="stat-accent-blue" />
       </div>
 
       {product.delayNote && (
@@ -143,8 +143,11 @@ function ProductDetail() {
 
       {/* Action cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        <div className="panel panel-shadow p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Reorder recommendation</h2>
+        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-blue-500">
+          <div className="card-header-blue px-5 py-3">
+            <h2 className="text-sm font-semibold text-slate-900">Reorder recommendation</h2>
+          </div>
+          <div className="p-5">
           {!recommendation ? (
             <button
               onClick={handleRecommend}
@@ -173,11 +176,15 @@ function ProductDetail() {
               </div>
             </div>
           )}
+          </div>
         </div>
 
-        <div className="panel panel-shadow p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-3">Manual stock adjustment</h2>
-          <form onSubmit={handleAdjust} className="space-y-3">
+        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-emerald-500">
+          <div className="card-header-emerald px-5 py-3">
+            <h2 className="text-sm font-semibold text-slate-900">Manual stock adjustment</h2>
+          </div>
+          <div className="p-5">
+            <form onSubmit={handleAdjust} className="space-y-3">
             <div className="flex gap-2">
               <input
                 type="number"
@@ -211,23 +218,25 @@ function ProductDetail() {
               {adjusting ? 'Saving…' : 'Apply adjustment'}
             </button>
           </form>
+          </div>
         </div>
       </div>
 
       {/* Compare suppliers */}
-      <div className="panel panel-shadow p-5 mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-900">Compare suppliers</h2>
+      <div className="panel panel-shadow overflow-hidden mb-8 border-t-4 border-t-violet-500">
+        <div className="card-header-violet px-5 py-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-900">Compare suppliers</h2>
           {!comparison && (
             <button
               onClick={() => void handleCompare()}
               disabled={comparing}
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              className="px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50 shadow-sm"
             >
               {comparing ? 'Comparing…' : 'Compare suppliers'}
             </button>
           )}
         </div>
+        <div className="p-5">
         {comparing && <p className="text-sm text-gray-400">Comparing…</p>}
         {comparison && !comparing && (
           <div>
@@ -265,12 +274,16 @@ function ProductDetail() {
             </table>
           </div>
         )}
+        </div>
       </div>
 
       {/* Recent movements */}
-      <div className="panel panel-shadow overflow-hidden">
-        <h2 className="text-sm font-semibold text-gray-900 px-5 pt-5 pb-3">Recent movements</h2>
-        <table className="w-full text-sm">
+      <div className="panel panel-shadow overflow-hidden border-t-4 border-t-slate-700">
+        <div className="card-header-slate px-5 py-3">
+          <h2 className="text-sm font-semibold text-slate-900">Recent movements</h2>
+        </div>
+        <div className="overflow-x-auto scrollbar-none">
+          <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
               <th className="px-5 py-2.5">Date</th>
@@ -293,17 +306,18 @@ function ProductDetail() {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   )
 }
 
-function Stat({ label, value, extra }: { label: string; value: string; extra?: ReactNode }) {
+function Stat({ label, value, extra, accent }: { label: string; value: string; extra?: ReactNode; accent?: string }) {
   return (
-    <div className="panel p-3.5">
-      <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">{label}</p>
-      <p className="text-base font-semibold text-gray-900 mt-0.5">{value}</p>
+    <div className={`panel panel-shadow p-3.5 ${accent ?? 'stat-accent-slate'}`}>
+      <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">{label}</p>
+      <p className="text-base font-semibold text-slate-900 mt-0.5">{value}</p>
       {extra}
     </div>
   )

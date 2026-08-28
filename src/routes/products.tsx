@@ -75,52 +75,54 @@ function ProductsList() {
         </select>
       </div>
 
-      <div className={`panel panel-shadow overflow-hidden transition-opacity duration-200 ${loading ? 'opacity-60' : ''}`}>
-        <div className="px-5 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Catalog</p>
-          <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{products.length} items</span>
+      <div className={`panel panel-shadow overflow-hidden border-t-4 border-t-blue-500 transition-opacity duration-200 ${loading ? 'opacity-60' : ''}`}>
+        <div className="px-5 py-3.5 card-header-slate flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Catalog</p>
+          <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-full font-medium shadow-sm">{products.length} items</span>
         </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50/60">
-              <th className="px-5 py-3">SKU</th>
-              <th className="px-5 py-3">Name</th>
-              <th className="px-5 py-3">Category</th>
-              <th className="px-5 py-3">Supplier</th>
-              <th className="px-5 py-3">Stock</th>
-              <th className="px-5 py-3">Reorder at</th>
-              <th className="px-5 py-3 text-right">Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
-                <td className="px-5 py-3.5 text-slate-400 font-mono text-xs">{p.sku}</td>
-                <td className="px-5 py-3.5">
-                  <Link to="/products/$productId" params={{ productId: String(p.id) }} className="font-medium text-slate-900 hover:text-blue-600">
-                    {p.name}
-                  </Link>
-                </td>
-                <td className="px-5 py-3.5 text-slate-500"><span className="bg-slate-100 px-2 py-0.5 rounded-full text-xs">{p.category}</span></td>
-                <td className="px-5 py-3.5 text-slate-500">{p.supplierName}</td>
-                <td className="px-5 py-3.5">
-                  <span className={`font-semibold px-2 py-0.5 rounded-full text-xs ${p.quantity <= p.reorderThreshold ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-50 text-slate-700'}`}>
-                    {p.quantity}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5 text-slate-400">{p.reorderThreshold}</td>
-                <td className="px-5 py-3.5 text-right font-semibold text-slate-900">{formatMoney(p.priceCents)}</td>
+        <div className="overflow-x-auto scrollbar-none">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50/60">
+                <th className="px-5 py-3 whitespace-nowrap">SKU</th>
+                <th className="px-5 py-3 whitespace-nowrap">Name</th>
+                <th className="px-5 py-3 whitespace-nowrap">Category</th>
+                <th className="px-5 py-3 whitespace-nowrap">Supplier</th>
+                <th className="px-5 py-3 whitespace-nowrap">Stock</th>
+                <th className="px-5 py-3 whitespace-nowrap">Reorder at</th>
+                <th className="px-5 py-3 text-right whitespace-nowrap">Price</th>
               </tr>
-            ))}
-            {products.length === 0 && (
-              <tr>
-                <td colSpan={7} className="py-12 text-center text-slate-400">
-                  No products match your search.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {products.map((p) => (
+                <tr key={p.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                  <td className="px-5 py-3.5 text-slate-400 font-mono text-xs whitespace-nowrap">{p.sku}</td>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <Link to="/products/$productId" params={{ productId: String(p.id) }} className="font-medium text-slate-900 hover:text-blue-600">
+                      {p.name}
+                    </Link>
+                  </td>
+                  <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap"><span className="bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full text-xs font-medium">{p.category}</span></td>
+                  <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">{p.supplierName}</td>
+                  <td className="px-5 py-3.5 whitespace-nowrap">
+                    <span className={`font-semibold px-2 py-0.5 rounded-full text-xs border ${p.quantity <= p.reorderThreshold ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                      {p.quantity}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-slate-400 whitespace-nowrap">{p.reorderThreshold}</td>
+                  <td className="px-5 py-3.5 text-right font-semibold text-slate-900 whitespace-nowrap">{formatMoney(p.priceCents)}</td>
+                </tr>
+              ))}
+              {products.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                    No products match your search.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

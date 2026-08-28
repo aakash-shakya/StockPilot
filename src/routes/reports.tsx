@@ -63,7 +63,11 @@ function ReportsPage() {
         <p className="text-sm text-gray-500">Describe what you want in plain English. Deterministic parsing.</p>
       </div>
 
-      <div className="panel panel-shadow p-5 mb-8">
+      <div className="panel panel-shadow overflow-hidden border-t-4 border-t-blue-500 mb-8">
+        <div className="card-header-blue px-5 py-3">
+          <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Generate a report</p>
+        </div>
+        <div className="p-5">
         <div className="flex flex-wrap gap-3 mb-3">
           <input
             value={query}
@@ -106,6 +110,7 @@ function ReportsPage() {
               {example}
             </button>
           ))}
+        </div>
         </div>
       </div>
 
@@ -164,8 +169,9 @@ function ReportsPage() {
             </div>
           )}
 
-          <div className="panel panel-shadow overflow-hidden overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="panel panel-shadow overflow-hidden border-t-4 border-t-slate-600">
+            <div className="overflow-x-auto scrollbar-none">
+              <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
                   {columns.map((col) => (
@@ -192,6 +198,7 @@ function ReportsPage() {
                 )}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}
