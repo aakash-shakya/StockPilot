@@ -30,7 +30,7 @@ INSERT INTO "inventory_movements" ("product_id", "type", "quantity_delta", "note
 
 -- Overdue PO: approved 18 days ago, still not received
 INSERT INTO "purchase_orders" ("po_number", "supplier_id", "status", "notes", "created_by", "created_at", "approved_at", "received_at") VALUES
-('PO-1057', 3, 'approved', 'Urgent restock for headphones and speakers', 'agent', NOW() - INTERVAL '20 days', NOW() - INTERVAL '18 days', NULL);
+('PO-1058', 3, 'approved', 'Urgent restock for headphones and speakers', 'agent', NOW() - INTERVAL '20 days', NOW() - INTERVAL '18 days', NULL);
 
 INSERT INTO "purchase_order_items" ("purchase_order_id", "product_id", "quantity", "unit_cost_cents") VALUES
 (currval('purchase_orders_id_seq'), 9, 15, 6800),
