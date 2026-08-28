@@ -7,7 +7,7 @@ An agent-native inventory management app: the same domain logic that powers the 
 - Tracks products, suppliers, stock levels, and inventory movements (sales, restocks, transfers, receiving).
 - Computes real-time stockout risk per product from recent vs. baseline sales velocity, supplier lead time, and known shipment delays.
 - Recommends reorder quantities and drafts purchase orders, which go through a `draft → approved → received` lifecycle.
-- Registers 12 WebMCP tools via `document.modelContext.registerTool()` (8 read-only, 4 consequential) so any WebMCP-capable agent connected to the tab can query and act on the exact same data as the UI.
+- Registers 32 WebMCP tools across 5 categories (`READ` 8, `ANALYZE` 12, `CREATE` 4, `MUTATE` 4, `COLLABORATE` 4) via `document.modelContext.registerTool()` (full `readOnlyHint`/`destructiveHint`/`idempotentHint`/`openWorldHint` per ToolAnnotations) so any WebMCP-capable agent connected to the tab can query and act on the exact same data as the UI. The single source for `inputSchema` is Zod in `src/server/inventory.functions.ts` via `@alcyone-labs/zod-to-json-schema`.
 - Shows a live "Agent Activity" panel and a persisted activity log so every tool call — human or agent-initiated — is visible and auditable.
 
 ## Tech stack
