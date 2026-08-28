@@ -69,12 +69,11 @@ mutations — lives once in `src/server/inventory.server.ts`. It is never duplic
    route `loader`s and event handlers.
 2. **WebMCP tools** (`src/lib/webmcp/tools.ts`) call the *same* server functions and register themselves with
    `document.modelContext.registerTool()` so a WebMCP-capable agent in the same tab can query and act on
-   identical data. There are 12 tools: 8 read-only (search, risk analysis, recommendations) and 4 consequential
-   (`create_purchase_order`, `approve_purchase_order`, `receive_shipment`, `update_stock`).
+   identical data. There are 32 tools across 5 categories: `READ` 8, `ANALYZE` 12, `CREATE` 4, `MUTATE` 4, `COLLABORATE` 4 (7 core, 25 aliases — see `docs/designs/webmcp-minimal-fix.md`). The single source for `inputSchema` is Zod in `src/server/inventory.functions.ts` via `@alcyone-labs/zod-to-json-schema` so schemas never drift.
 
-Consequential tools are annotated `readOnlyHint: false` and instructed in their descriptions to only run after a
+Consequential tools are annotated with full `readOnlyHint`/`destructiveHint`/`idempotentHint`/`openWorldHint` (all 4 per ToolAnnotations, `openWorldHint:false` for all local-DB tools) and instructed in their descriptions to only run after a
 human has approved the action in conversation. The actual security boundary is server-side validation in
-`inventory.server.ts` — WebMCP annotations are a hint to the agent, not an access-control mechanism.
+`inventory.server.ts` (session-derived `decidedBy`, `db.transaction` for `receiveShipment`) — WebMCP annotations are a hint to the agent, not an access-control mechanism.
 
 ### Agent Activity panel
 

@@ -1,36 +1,95 @@
-# StockPilot
+# StockPilot — AI Inventory Operations Agent
 
-An agent-native inventory management app: the same domain logic that powers the dashboard is exposed as [WebMCP](https://github.com/webmachinelearning/webmcp) tools, so a browser-based AI agent can inspect stock risk and, with a human approving every consequential step, draft and execute purchase orders alongside the shop owner.
+> Same brain as your dashboard. Agent gets its own copy.
 
-## What it does
+StockPilot is an agent-native inventory management app where the dashboard and a browser-based AI agent operate on the **same data through the same logic**. The UI calls it via TanStack Start server functions. Any WebMCP-capable agent connected to the tab calls the exact same tools via `document.modelContext.registerTool()`. No duplication. No drift. Two entry points, one source of truth.
 
-- Tracks products, suppliers, stock levels, and inventory movements (sales, restocks, transfers, receiving).
-- Computes real-time stockout risk per product from recent vs. baseline sales velocity, supplier lead time, and known shipment delays.
-- Recommends reorder quantities and drafts purchase orders, which go through a `draft → approved → received` lifecycle.
-- Registers 12 WebMCP tools via `document.modelContext.registerTool()` (8 read-only, 4 consequential) so any WebMCP-capable agent connected to the tab can query and act on the exact same data as the UI.
-- Shows a live "Agent Activity" panel and a persisted activity log so every tool call — human or agent-initiated — is visible and auditable.
+## The Problem
 
-## Tech stack
+Warehouse and procurement managers at 20–100 SKU shops spend **4+ hours every Monday** walking the floor with a clipboard, manually counting stock, and building purchase orders in spreadsheets. They copy supplier names, costs, and lead times from separate sheets, WhatsApp suppliers for updates, and cross their fingers on delivery timing. One stockout on a hero SKU during a launch can cost thousands.
 
-- [TanStack Start](https://tanstack.com/start) (React 19, TanStack Router, Vite 7)
-- Tailwind CSS 4
-- Drizzle ORM over Netlify DB (managed Postgres)
-- [`@mcp-b/global`](https://www.npmjs.com/package/@mcp-b/global) as the WebMCP polyfill/transport
+StockPilot eliminates that Monday morning ritual.
+
+## The Demo
+
+**"Protect my inventory with a $3,000 budget."**
+
+One prompt triggers a full workflow:
+1. **Morning briefing** — health score (0–100), critical issues, pending approvals, dead-stock capital, supplier alerts
+2. **Risk analysis** — which products will stock out, when, and why (accelerating demand, supplier delays, or declining sales)
+3. **Budget-aware replenishment plan** — reorder quantities prioritized by urgency, fitted within budget, grouped by supplier with cost subtotals
+4. **Propose & approve** — agent files pending actions, human approves with a single YES, purchase orders are created
+5. **Receive & update** — stock is received, inventory movements logged, dashboard updates in real-time
+
+## WebMCP Tools — 36 Tools Across 7 Categories
+
+| Category | Count | Description |
+|----------|-------|-------------|
+| **READ** | 8 | `search_products`, `get_inventory_summary`, `find_low_stock`, `get_product_details`, `get_sales_velocity`, `get_purchase_orders`, `get_inventory_movements`, `get_suppliers` |
+| **ANALYZE** | 15 | `analyze_stock_risk`, `recommend_reorder`, `get_supplier_intelligence`, `compare_suppliers`, `find_dead_stock`, `get_inventory_health_check`, `what_should_i_worry_about`, `forecast_demand`, `simulate_inventory`, `query_inventory`, `generate_report`, `build_replenishment_plan`, `get_morning_briefing`, `get_emergency_impact`, `investigate_inventory` |
+| **CREATE** | 3 | `generate_sku`, `generate_product`, `create_product_from_draft` |
+| **MUTATE** | 4 | `create_purchase_order`, `approve_purchase_order`, `receive_shipment`, `update_stock`, `revert_movement` |
+| **COLLABORATE** | 6 | `get_pending_agent_actions`, `propose_replenishment`, `approve_agent_action`, `reject_agent_action`, `get_business_policies`, `update_business_policy` |
+
+Every tool has:
+- **4 annotations**: `readOnlyHint`, `destructiveHint`, `idempotentHint`, `openWorldHint`
+- **Code-gen input schemas**: Zod → JSON Schema via `@alcyone-labs/zod-to-json-schema` — no manual drift
+- **`isError` contract**: structured error codes (`NOT_FOUND`, `CONFLICT`, `PRECONDITION_FAILED`, `INVALID_INPUT`) with hints
+- **Audit trail**: every tool call logged to `agent_tool_calls` table with input, summary, and timestamp
+
+## Key Workflows
+
+### Morning Briefing (`get_morning_briefing`)
+One-call comprehensive status: health score, urgent issues, pending approvals, reorder budget, dead-stock capital, supplier alerts, and the single top action. The agent's 6am wake-up call.
+
+### Cash-Aware Replenishment (`build_replenishment_plan` with `budgetCents`)
+Pass a budget cap and the plan prioritizes by urgency (critical → warning → watch), fits items within budget, and returns what fits vs. what's rejected. No overspending.
+
+### Emergency Response (`get_emergency_impact`)
+"Supplier delayed 10 days" → instant impact analysis: which products stock out, days until stockout, alternate suppliers available, total revenue at risk.
+
+### Inventory Detective (`investigate_inventory`)
+Automated audit: negative stock, suspicious adjustments without notes, receiving discrepancies, duplicate SKUs, and stale products with no movement in 30+ days.
+
+### Business Policies (`get_business_policies` / `update_business_policy`)
+Configurable thresholds: auto-approve POs under $500, safety stock at 15%, target coverage 30 days, max supplier concentration 40%. The agent reads these before making decisions.
 
 ## Architecture
 
-Domain logic lives once, in `src/server/inventory.server.ts`, and is called from two places:
+```
+src/server/inventory.server.ts    ← Single source of truth (all domain logic)
+        ↓
+src/server/inventory.functions.ts ← Zod schemas + TanStack Start server functions
+        ↓                    ↓
+   UI (routes)         WebMCP tools (tools.ts)
+   via loaders         via document.modelContext.registerTool()
+```
 
-1. **The UI**, via TanStack Start server functions (`src/server/inventory.functions.ts`) used in route loaders and event handlers.
-2. **WebMCP tools** (`src/lib/webmcp/tools.ts`), which wrap the same server functions and register them with `document.modelContext` so an agent can call them directly from the browser tab.
+- **Shared domain logic**: `inventory.server.ts` (~1600 lines) handles risk analysis, velocity computation, replenishment planning, PO lifecycle, supplier intelligence, health checks, detective work, and emergency impact — called identically by both entry points.
+- **Server-side safety**: `decide_agent_action` derives `decidedBy` from the session cookie, never trusting client input. `receiveShipment` and `updateStock` run in `db.transaction` for atomicity.
+- **Progressive enhancement**: `document.modelContext` is an enhancement. The app is 100% functional via TanStack Start server functions without WebMCP.
 
-Consequential tools (`create_purchase_order`, `approve_purchase_order`, `receive_shipment`, `update_stock`) are annotated as non-read-only and instructed in their descriptions to only run after explicit human approval in conversation. The actual security boundary is server-side validation in `inventory.server.ts`, not the WebMCP layer itself.
+## Tech Stack
 
-## Local development
+| Layer | Technology |
+|-------|------------|
+| Framework | TanStack Start (React 19, TanStack Router v1) |
+| Build | Vite 7 |
+| Styling | Tailwind CSS 4 |
+| Database | Netlify Database (managed Postgres) via Drizzle ORM |
+| Agent Interface | WebMCP (`@mcp-b/global`) via `document.modelContext.registerTool()` |
+| Language | TypeScript 5.7 (strict mode) |
+| Deployment | Netlify |
+
+## Local Development
 
 ```bash
 npm install
 netlify dev
 ```
 
-Database migrations under `netlify/database/migrations/` (schema + seed data) are applied automatically against the Netlify DB branch.
+Database migrations (`netlify/database/migrations/`) are applied automatically at deploy time.
+
+## License
+
+MIT

@@ -51,13 +51,7 @@ function PurchaseOrdersList() {
         {purchaseOrders.map((po) => (
           <div
             key={po.id}
-            className={`panel panel-shadow overflow-hidden ${
-              po.status === 'draft'
-                ? 'border-l-4 border-l-slate-400'
-                : po.status === 'approved'
-                  ? 'border-l-4 border-l-blue-500'
-                  : 'border-l-4 border-l-emerald-500'
-            }`}
+            className="panel overflow-hidden"
           >
             <div className="p-5">
             <div className="flex items-start justify-between mb-3">

@@ -27,22 +27,30 @@ function HealthPage() {
         <p className="text-sm text-slate-500">{worryAbout.summary}</p>
       </div>
 
-      {/* Severity stats - distinct accents */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="panel panel-shadow p-4 stat-accent-red bg-gradient-to-br from-white to-red-50/20">
-          <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">High severity</p>
-          <p className="text-3xl font-bold text-red-600 mt-1">{health.highSeverityCount}</p>
-          <p className="text-xs text-slate-400">immediate action</p>
-        </div>
-        <div className="panel panel-shadow p-4 stat-accent-amber bg-gradient-to-br from-white to-orange-50/20">
-          <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Medium severity</p>
-          <p className="text-3xl font-bold text-orange-600 mt-1">{health.mediumSeverityCount}</p>
-          <p className="text-xs text-slate-400">plan soon</p>
-        </div>
-        <div className="panel panel-shadow p-4 stat-accent-violet bg-gradient-to-br from-white to-amber-50/20">
-          <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Low severity</p>
-          <p className="text-3xl font-bold text-amber-600 mt-1">{health.lowSeverityCount}</p>
-          <p className="text-xs text-slate-400">monitor</p>
+      {/* Severity KPI bar */}
+      <div className="panel overflow-hidden mb-8">
+        <div className="grid grid-cols-3 divide-x divide-slate-200">
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-500" /> High severity
+            </p>
+            <p className="text-3xl font-bold text-red-600 mt-1 tabular-nums">{health.highSeverityCount}</p>
+            <p className="text-xs text-slate-500 mt-0.5">immediate action</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-orange-500" /> Medium severity
+            </p>
+            <p className="text-3xl font-bold text-orange-600 mt-1 tabular-nums">{health.mediumSeverityCount}</p>
+            <p className="text-xs text-slate-500 mt-0.5">plan soon</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500" /> Low severity
+            </p>
+            <p className="text-3xl font-bold text-amber-600 mt-1 tabular-nums">{health.lowSeverityCount}</p>
+            <p className="text-xs text-slate-500 mt-0.5">monitor</p>
+          </div>
         </div>
       </div>
 
@@ -56,9 +64,7 @@ function HealthPage() {
         {worryAbout.items.map((item, idx) => (
           <div
             key={idx}
-            className={`panel panel-shadow p-4 flex items-center justify-between gap-4 hover:shadow-md border-l-4 ${
-              item.severity === 'high' ? 'border-l-red-500' : item.severity === 'medium' ? 'border-l-amber-500' : 'border-l-violet-400'
-            }`}
+            className="panel p-4 flex items-center justify-between gap-4"
           >
             <div className="flex items-start gap-3 min-w-0">
               <span className="text-xs font-mono bg-slate-100 text-slate-600 w-6 h-6 rounded-full flex items-center justify-center shrink-0">{idx + 1}</span>
@@ -90,7 +96,7 @@ function HealthPage() {
         <h2 className="text-sm font-semibold text-slate-900">All issues</h2>
         <span className="text-xs bg-slate-900 text-white px-2 py-0.5 rounded-full">{health.totalIssues}</span>
       </div>
-      <div className="panel panel-shadow overflow-hidden mb-8 border-t-4 border-t-slate-600">
+      <div className="panel panel-shadow overflow-hidden mb-8">
         <div className="card-header-slate px-5 py-3">
           <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Issues requiring attention</p>
         </div>
@@ -135,7 +141,7 @@ function HealthPage() {
           <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">{formatMoney(totalDeadCapitalCents)} tied up</span>
         )}
       </div>
-      <div className="panel panel-shadow overflow-hidden border-t-4 border-t-amber-500">
+      <div className="panel panel-shadow overflow-hidden">
         <div className="card-header-amber px-5 py-3 flex items-center gap-2">
           <PackageX className="w-4 h-4 text-amber-600" />
           <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Dead stock — capital tied up</p>

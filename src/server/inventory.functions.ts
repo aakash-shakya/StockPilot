@@ -2,84 +2,187 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import * as inventory from './inventory.server.js'
 
-const actorSchema = z.enum(['human', 'agent']).optional()
+export const actorSchema = z.enum(['human', 'agent']).optional()
+
+// Exported Zod schemas for WebMCP code-gen (single source of truth)
+export const searchProductsSchema = z.object({
+  query: z.string().min(1).optional().describe('Free-text match against product name or SKU'),
+  category: z.string().min(1).optional().describe('Exact category name, e.g. Electronics'),
+  limit: z.number().int().min(1).max(100).optional().describe('Max results, default 50'),
+})
+export const findLowStockSchema = z.object({
+  days: z.number().int().min(1).max(90).optional().describe('Look-ahead window in days, default 7'),
+  category: z.string().min(1).optional().describe('Restrict to one category'),
+})
+export const getProductDetailsSchema = z.object({
+  productId: z.number().int().positive().describe('Product id from search_products.id'),
+})
+export const getSalesVelocitySchema = z.object({
+  productId: z.number().int().positive().describe('Product id'),
+  days: z.number().int().min(1).max(90).optional().describe('Trailing window days, default 14'),
+})
+export const analyzeStockRiskSchema = z.object({
+  days: z.number().int().min(1).max(90).optional().describe('Look-ahead window days, default 7'),
+  category: z.string().min(1).optional().describe('Category filter'),
+  productId: z.number().int().positive().optional().describe('Limit to single product'),
+})
+export const recommendReorderSchema = z.object({
+  productIds: z.array(z.number().int().positive()).optional().describe('Products to recommend for; omit for all at-risk'),
+  targetCoverageDaysOverride: z.number().int().min(1).max(365).optional().describe("Override target coverage days"),
+})
+export const getPurchaseOrdersSchema = z.object({
+  status: z.enum(['draft', 'approved', 'received']).optional().describe('Filter by status'),
+})
+export const getInventoryMovementsSchema = z.object({
+  productId: z.number().int().positive().optional().describe('Filter by product'),
+  type: z.enum(['sale', 'restock', 'adjustment', 'transfer_in', 'transfer_out', 'receiving']).optional().describe('Movement type'),
+  limit: z.number().int().min(1).max(100).optional().describe('Max rows, default 50'),
+})
+export const getSuppliersSchema = z.object({})
+export const getSupplierIntelligenceSchema = z.object({})
+export const compareSuppliersSchema = z.object({
+  productId: z.number().int().positive().describe('Product id'),
+})
+export const findDeadStockSchema = z.object({
+  minDaysStale: z.number().int().min(1).max(365).optional().describe('Zero-sales window days, default 60'),
+  category: z.string().min(1).optional().describe('Category filter'),
+})
+export const getInventoryHealthCheckSchema = z.object({})
+export const whatShouldIWorryAboutSchema = z.object({})
+export const forecastDemandSchema = z.object({
+  productId: z.number().int().positive().describe('Product id'),
+  horizonDays: z.number().int().min(1).max(90).optional().describe('Days to project, default 30'),
+})
+export const simulateInventorySchema = z.object({
+  productId: z.number().int().positive().describe('Product id'),
+  demandChangePct: z.number().min(-95).max(500).optional().describe('e.g. 25 for +25% demand'),
+  leadTimeChangeDays: z.number().int().min(-30).max(90).optional().describe('e.g. 5 for 5 extra days'),
+  horizonDays: z.number().int().min(1).max(90).optional().describe('Days to project'),
+})
+export const queryInventorySchema = z.object({
+  query: z.string().min(1).describe('Natural language inventory question'),
+})
+export const generateReportSchema = z.object({
+  query: z.string().min(1).describe('e.g. monthly inventory report or which suppliers are underperforming'),
+  category: z.string().min(1).optional().describe('Category filter'),
+})
+export const buildReplenishmentPlanSchema = z.object({
+  category: z.string().min(1).optional().describe('Category filter'),
+  days: z.number().int().min(1).max(90).optional().describe('Look-ahead days, default 10'),
+  budgetCents: z.number().int().min(0).optional().describe('Max budget in cents — items prioritized by urgency and fitted within cap'),
+})
+export const createReplenishmentProposalsSchema = buildReplenishmentPlanSchema
+export const generateSkuSchema = z.object({
+  category: z.string().min(1).describe('Category'),
+  brand: z.string().min(1).describe('Brand'),
+  model: z.string().min(1).describe('Model'),
+  variant: z.string().min(1).optional().describe('Variant'),
+})
+export const draftProductSchema = z.object({
+  category: z.string().min(1).describe('Category'),
+  brand: z.string().min(1).describe('Brand'),
+  model: z.string().min(1).describe('Model'),
+  variant: z.string().min(1).optional().describe('Variant'),
+  name: z.string().min(1).describe('Display name'),
+  supplierId: z.number().int().positive().describe('Supplier id'),
+  costCents: z.number().int().positive().describe('Cost in cents'),
+  priceCents: z.number().int().positive().describe('Price in cents'),
+  initialQuantity: z.number().int().min(0).optional().describe('Initial stock'),
+  reorderThreshold: z.number().int().min(0).optional().describe('Reorder point'),
+  targetCoverageDays: z.number().int().min(1).optional().describe('Target coverage days'),
+})
+export const createProductFromDraftSchema = z.object({
+  sku: z.string().min(1).describe('SKU from draft'),
+  name: z.string().min(1).describe('Name'),
+  category: z.string().min(1).describe('Category'),
+  supplierId: z.number().int().positive().describe('Supplier id'),
+  costCents: z.number().int().positive().describe('Cost cents'),
+  priceCents: z.number().int().positive().describe('Price cents'),
+  quantity: z.number().int().min(0).optional().describe('Quantity'),
+  reorderThreshold: z.number().int().min(0).optional().describe('Reorder threshold'),
+  targetCoverageDays: z.number().int().min(1).optional().describe('Target coverage'),
+})
+export const createPurchaseOrderSchema = z.object({
+  supplierId: z.number().int().positive().describe('Supplier id'),
+  items: z.array(z.object({ productId: z.number().int().positive().describe('Product id'), quantity: z.number().int().positive().describe('Quantity') })).min(1).describe('Line items'),
+  notes: z.string().optional().describe('Notes'),
+  createdBy: actorSchema,
+})
+export const approvePurchaseOrderSchema = z.object({
+  purchaseOrderId: z.number().int().positive().describe('Purchase order id'),
+})
+export const receiveShipmentSchema = z.object({
+  purchaseOrderId: z.number().int().positive().describe('Purchase order id'),
+  actor: actorSchema,
+})
+export const updateStockSchema = z.object({
+  productId: z.number().int().positive().describe('Product id'),
+  quantityDelta: z.number().int().refine((v) => v !== 0, 'quantityDelta must be non-zero').describe('Signed change, e.g. -3 or 10'),
+  type: z.enum(['adjustment', 'transfer_in', 'transfer_out', 'restock']).describe('Movement type'),
+  note: z.string().optional().describe('Reason'),
+  actor: actorSchema,
+})
+export const revertMovementSchema = z.object({
+  movementId: z.number().int().positive().describe('Movement id to revert'),
+  actor: actorSchema,
+})
+export const listAgentActionsSchema = z.object({
+  status: z.enum(['pending', 'approved', 'rejected', 'executed', 'failed']).optional().describe('Filter by status'),
+})
+export const proposeReplenishmentSchema = buildReplenishmentPlanSchema
+export const decideAgentActionSchema = z.object({
+  actionId: z.number().int().positive().describe('Agent action id'),
+  decision: z.enum(['approved', 'rejected']).describe('Decision'),
+})
+// Server-only schema that includes decidedBy (not exposed to WebMCP)
+export const decideAgentActionServerSchema = decideAgentActionSchema.extend({ decidedBy: actorSchema })
 
 export const searchProductsFn = createServerFn({ method: 'GET' })
-  .inputValidator(
-    z.object({ query: z.string().optional(), category: z.string().optional(), limit: z.number().optional() }),
-  )
+  .inputValidator(searchProductsSchema)
   .handler(({ data }) => inventory.searchProducts(data))
 
-export const getInventorySummaryFn = createServerFn({ method: 'GET' }).handler(() =>
-  inventory.getInventorySummary(),
-)
+export const getInventorySummaryFn = createServerFn({ method: 'GET' }).handler(() => inventory.getInventorySummary())
 
 export const findLowStockFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ days: z.number().min(1).max(90).optional(), category: z.string().optional() }))
+  .inputValidator(findLowStockSchema)
   .handler(({ data }) => inventory.findLowStock(data))
 
 export const getProductDetailsFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ productId: z.number() }))
+  .inputValidator(getProductDetailsSchema)
   .handler(({ data }) => inventory.getProductDetails(data))
 
 export const getSalesVelocityFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ productId: z.number(), days: z.number().min(1).max(90).optional() }))
+  .inputValidator(getSalesVelocitySchema)
   .handler(({ data }) => inventory.getSalesVelocity(data))
 
 export const analyzeStockRiskFn = createServerFn({ method: 'GET' })
-  .inputValidator(
-    z.object({
-      days: z.number().min(1).max(90).optional(),
-      category: z.string().optional(),
-      productId: z.number().optional(),
-    }),
-  )
+  .inputValidator(analyzeStockRiskSchema)
   .handler(({ data }) => inventory.analyzeStockRisk(data))
 
 export const recommendReorderFn = createServerFn({ method: 'GET' })
-  .inputValidator(
-    z.object({
-      productIds: z.array(z.number()).optional(),
-      targetCoverageDaysOverride: z.number().min(1).max(365).optional(),
-    }),
-  )
+  .inputValidator(recommendReorderSchema)
   .handler(({ data }) => inventory.recommendReorder(data))
 
 export const getPurchaseOrdersFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ status: z.string().optional() }).optional())
+  .inputValidator(getPurchaseOrdersSchema.optional())
   .handler(({ data }) => inventory.getPurchaseOrders(data ?? {}))
 
 export const getSuppliersFn = createServerFn({ method: 'GET' }).handler(() => inventory.getSuppliers())
 
 export const createPurchaseOrderFn = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      supplierId: z.number(),
-      items: z.array(z.object({ productId: z.number(), quantity: z.number().positive() })).min(1),
-      notes: z.string().optional(),
-      createdBy: actorSchema,
-    }),
-  )
+  .inputValidator(createPurchaseOrderSchema)
   .handler(({ data }) => inventory.createPurchaseOrder(data))
 
 export const approvePurchaseOrderFn = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ purchaseOrderId: z.number() }))
+  .inputValidator(approvePurchaseOrderSchema)
   .handler(({ data }) => inventory.approvePurchaseOrder(data))
 
 export const receiveShipmentFn = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ purchaseOrderId: z.number(), actor: actorSchema }))
+  .inputValidator(receiveShipmentSchema)
   .handler(({ data }) => inventory.receiveShipment(data))
 
 export const updateStockFn = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      productId: z.number(),
-      quantityDelta: z.number().int(),
-      type: z.enum(['adjustment', 'transfer_in', 'transfer_out', 'restock']),
-      note: z.string().optional(),
-      actor: actorSchema,
-    }),
-  )
+  .inputValidator(updateStockSchema)
   .handler(({ data }) => inventory.updateStock(data))
 
 export const logAgentToolCallFn = createServerFn({ method: 'POST' })
@@ -106,7 +209,7 @@ export const getSupplierIntelligenceFn = createServerFn({ method: 'GET' }).handl
 )
 
 export const compareSuppliersFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ productId: z.number() }))
+  .inputValidator(compareSuppliersSchema)
   .handler(({ data }) => inventory.compareSuppliers(data))
 
 // ---------------------------------------------------------------------------
@@ -114,7 +217,7 @@ export const compareSuppliersFn = createServerFn({ method: 'GET' })
 // ---------------------------------------------------------------------------
 
 export const findDeadStockFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ minDaysStale: z.number().min(1).max(365).optional(), category: z.string().optional() }).optional())
+  .inputValidator(findDeadStockSchema.optional())
   .handler(({ data }) => inventory.findDeadStock(data ?? {}))
 
 export const getInventoryHealthCheckFn = createServerFn({ method: 'GET' }).handler(() =>
@@ -129,45 +232,16 @@ export const whatShouldIWorryAboutFn = createServerFn({ method: 'GET' }).handler
 // Product & SKU generation
 // ---------------------------------------------------------------------------
 
-const skuPartsSchema = z.object({
-  category: z.string(),
-  brand: z.string(),
-  model: z.string(),
-  variant: z.string().optional(),
-})
-
 export const generateSkuFn = createServerFn({ method: 'GET' })
-  .inputValidator(skuPartsSchema)
+  .inputValidator(generateSkuSchema)
   .handler(({ data }) => inventory.generateSku(data))
 
 export const draftProductFn = createServerFn({ method: 'POST' })
-  .inputValidator(
-    skuPartsSchema.extend({
-      name: z.string(),
-      supplierId: z.number(),
-      costCents: z.number().positive(),
-      priceCents: z.number().positive(),
-      initialQuantity: z.number().min(0).optional(),
-      reorderThreshold: z.number().min(0).optional(),
-      targetCoverageDays: z.number().min(1).optional(),
-    }),
-  )
+  .inputValidator(draftProductSchema)
   .handler(({ data }) => inventory.draftProduct(data))
 
 export const createProductFromDraftFn = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      sku: z.string(),
-      name: z.string(),
-      category: z.string(),
-      supplierId: z.number(),
-      costCents: z.number().positive(),
-      priceCents: z.number().positive(),
-      quantity: z.number().min(0).optional(),
-      reorderThreshold: z.number().min(0).optional(),
-      targetCoverageDays: z.number().min(1).optional(),
-    }),
-  )
+  .inputValidator(createProductFromDraftSchema)
   .handler(({ data }) => inventory.createProductFromDraft(data))
 
 // ---------------------------------------------------------------------------
@@ -175,7 +249,7 @@ export const createProductFromDraftFn = createServerFn({ method: 'POST' })
 // ---------------------------------------------------------------------------
 
 export const listAgentActionsFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ status: z.string().optional() }).optional())
+  .inputValidator(listAgentActionsSchema.optional())
   .handler(({ data }) => inventory.listAgentActions(data ?? {}))
 
 export const proposeAgentActionFn = createServerFn({ method: 'POST' })
@@ -194,25 +268,27 @@ export const proposeAgentActionFn = createServerFn({ method: 'POST' })
   .handler(({ data }) => inventory.proposeAgentAction(data))
 
 export const decideAgentActionFn = createServerFn({ method: 'POST' })
-  .inputValidator(
-    z.object({
-      actionId: z.number(),
-      decision: z.enum(['approved', 'rejected']),
-      decidedBy: actorSchema,
-    }),
-  )
-  .handler(({ data }) => inventory.decideAgentAction(data))
+  .inputValidator(decideAgentActionSchema)
+  .handler(async ({ data }) => {
+    // Server-derived actor — never trust client-supplied decidedBy (impersonation fix D4)
+    const { getCookie } = await import('@tanstack/react-start/server')
+    const { validateSessionToken, getSessionCookieName } = await import('./auth.server.js')
+    const token = getCookie(getSessionCookieName())
+    const user = token ? await validateSessionToken(token) : null
+    const decidedBy = user ? (user.name as string) : 'human'
+    return inventory.decideAgentAction({ ...data, decidedBy } as any)
+  })
 
 // ---------------------------------------------------------------------------
 // Smart Replenishment
 // ---------------------------------------------------------------------------
 
 export const buildReplenishmentPlanFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ category: z.string().optional(), days: z.number().min(1).max(90).optional() }).optional())
+  .inputValidator(buildReplenishmentPlanSchema.optional())
   .handler(({ data }) => inventory.buildReplenishmentPlan(data ?? {}))
 
 export const createReplenishmentProposalsFn = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ category: z.string().optional(), days: z.number().min(1).max(90).optional() }).optional())
+  .inputValidator(createReplenishmentProposalsSchema.optional())
   .handler(({ data }) => inventory.createReplenishmentProposals(data ?? {}))
 
 // ---------------------------------------------------------------------------
@@ -220,14 +296,7 @@ export const createReplenishmentProposalsFn = createServerFn({ method: 'POST' })
 // ---------------------------------------------------------------------------
 
 export const simulateInventoryFn = createServerFn({ method: 'GET' })
-  .inputValidator(
-    z.object({
-      productId: z.number(),
-      demandChangePct: z.number().min(-95).max(500).optional(),
-      leadTimeChangeDays: z.number().min(-30).max(90).optional(),
-      horizonDays: z.number().min(1).max(90).optional(),
-    }),
-  )
+  .inputValidator(simulateInventorySchema)
   .handler(({ data }) => inventory.simulateInventory(data))
 
 // ---------------------------------------------------------------------------
@@ -235,11 +304,11 @@ export const simulateInventoryFn = createServerFn({ method: 'GET' })
 // ---------------------------------------------------------------------------
 
 export const generateReportFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ query: z.string(), category: z.string().optional() }))
+  .inputValidator(generateReportSchema)
   .handler(({ data }) => inventory.generateReport(data))
 
 export const generateReportCsvFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ query: z.string(), category: z.string().optional() }))
+  .inputValidator(generateReportSchema)
   .handler(({ data }) => inventory.generateReportCsv(data))
 
 // ---------------------------------------------------------------------------
@@ -247,7 +316,7 @@ export const generateReportCsvFn = createServerFn({ method: 'GET' })
 // ---------------------------------------------------------------------------
 
 export const queryInventoryFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ query: z.string() }))
+  .inputValidator(queryInventorySchema)
   .handler(({ data }) => inventory.queryInventory(data))
 
 // ---------------------------------------------------------------------------
@@ -255,13 +324,11 @@ export const queryInventoryFn = createServerFn({ method: 'GET' })
 // ---------------------------------------------------------------------------
 
 export const getInventoryMovementsFn = createServerFn({ method: 'GET' })
-  .inputValidator(
-    z.object({ productId: z.number().optional(), type: z.string().optional(), limit: z.number().optional() }).optional(),
-  )
+  .inputValidator(getInventoryMovementsSchema.optional())
   .handler(({ data }) => inventory.getInventoryMovements(data ?? {}))
 
 export const revertMovementFn = createServerFn({ method: 'POST' })
-  .inputValidator(z.object({ movementId: z.number(), actor: actorSchema }))
+  .inputValidator(revertMovementSchema)
   .handler(({ data }) => inventory.revertMovement(data))
 
 // ---------------------------------------------------------------------------
@@ -269,3 +336,43 @@ export const revertMovementFn = createServerFn({ method: 'POST' })
 // ---------------------------------------------------------------------------
 
 export const getMissionStatusFn = createServerFn({ method: 'GET' }).handler(() => inventory.getMissionStatus())
+
+// ---------------------------------------------------------------------------
+// Morning Briefing
+// ---------------------------------------------------------------------------
+
+export const getMorningBriefingFn = createServerFn({ method: 'GET' }).handler(() => inventory.getMorningBriefing())
+
+// ---------------------------------------------------------------------------
+// Emergency Impact
+// ---------------------------------------------------------------------------
+
+export const getEmergencyImpactSchema = z.object({
+  supplierId: z.number().int().positive().describe('Supplier id to analyze'),
+  delayDays: z.number().int().min(1).max(90).optional().describe('Additional delay in days, default 14'),
+})
+
+export const getEmergencyImpactFn = createServerFn({ method: 'GET' })
+  .inputValidator(getEmergencyImpactSchema)
+  .handler(({ data }) => inventory.getEmergencyImpact(data))
+
+// ---------------------------------------------------------------------------
+// Inventory Detective
+// ---------------------------------------------------------------------------
+
+export const investigateInventoryFn = createServerFn({ method: 'GET' }).handler(() => inventory.investigateInventory())
+
+// ---------------------------------------------------------------------------
+// Business Policies
+// ---------------------------------------------------------------------------
+
+export const getBusinessPoliciesFn = createServerFn({ method: 'GET' }).handler(() => inventory.getBusinessPolicies())
+
+export const updateBusinessPolicySchema = z.object({
+  key: z.string().min(1).describe('Policy key'),
+  value: z.string().min(1).describe('New value (JSON-encoded)'),
+})
+
+export const updateBusinessPolicyFn = createServerFn({ method: 'POST' })
+  .inputValidator(updateBusinessPolicySchema)
+  .handler(({ data }) => inventory.updateBusinessPolicy(data))

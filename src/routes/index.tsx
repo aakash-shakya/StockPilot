@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { AlertTriangle, ArrowRight, Boxes, HeartPulse, Package, ShieldCheck, TimerReset, Trophy } from 'lucide-react'
+import { ArrowRight, Boxes, HeartPulse, ShieldCheck, Trophy } from 'lucide-react'
 import {
   findLowStockFn,
   getInventorySummaryFn,
@@ -41,26 +41,42 @@ function Dashboard() {
         </p>
       </div>
 
-      {/* Stat cards - distinct accents */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={Package} color="text-blue-600" bg="bg-blue-50" accent="stat-accent-blue" title="Products" value={String(summary.totalProducts)} sub={`${summary.totalUnits} units on hand`} />
-        <StatCard icon={AlertTriangle} color="text-red-600" bg="bg-red-50" accent="stat-accent-red" title="Critical" value={String(summary.criticalCount)} sub="≤2 days of stock left" highlight={summary.criticalCount > 0} />
-        <StatCard icon={AlertTriangle} color="text-amber-600" bg="bg-amber-50" accent="stat-accent-amber" title="Warning" value={String(summary.warningCount)} sub="below reorder point" />
-        <StatCard
-          icon={TimerReset}
-          color="text-violet-600"
-          bg="bg-violet-50"
-          accent="stat-accent-violet"
-          title="Avg. Coverage"
-          value={summary.avgCoverageDays !== null ? `${summary.avgCoverageDays}d` : '—'}
-          sub="across all products"
-        />
+      {/* KPI bar — single row, no card mosaic */}
+      <div className="panel overflow-hidden mb-8 divide-y-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-200">
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Products</p>
+            <p className="text-2xl font-bold text-slate-900 tracking-tight mt-1 tabular-nums">{summary.totalProducts}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">{summary.totalUnits} units on hand</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-500" /> Critical
+            </p>
+            <p className="text-2xl font-bold text-red-600 tracking-tight mt-1 tabular-nums">{summary.criticalCount}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">≤2 days of stock left</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500" /> Warning
+            </p>
+            <p className="text-2xl font-bold text-amber-600 tracking-tight mt-1 tabular-nums">{summary.warningCount}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">below reorder point</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Avg. Coverage</p>
+            <p className="text-2xl font-bold text-slate-900 tracking-tight mt-1 tabular-nums">
+              {summary.avgCoverageDays !== null ? `${summary.avgCoverageDays}d` : '—'}
+            </p>
+            <p className="text-[11px] text-slate-500 mt-0.5">across all products</p>
+          </div>
+        </div>
       </div>
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Worry about - elevated with header */}
-        <div className="lg:col-span-2 panel panel-shadow overflow-hidden border-l-4 border-l-red-500/90">
+        <div className="lg:col-span-2 panel panel-shadow overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 card-header-red">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center shadow-sm ring-1 ring-red-600/20">
@@ -98,7 +114,7 @@ function Dashboard() {
 
         {/* Agent Actions + Mission */}
         <div className="space-y-4">
-          <div className="panel panel-shadow overflow-hidden border-l-4 border-l-blue-500">
+          <div className="panel panel-shadow overflow-hidden">
             <div className="px-5 py-3.5 card-header-blue flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm ring-1 ring-blue-700/15">
@@ -116,7 +132,7 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="panel panel-shadow overflow-hidden border-l-4 border-l-violet-500">
+          <div className="panel panel-shadow overflow-hidden">
             <div className="p-5 bg-gradient-to-br from-violet-50/60 to-white">
               <div className="flex items-center gap-3 mb-3.5">
                 <div className="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center shadow-sm ring-1 ring-violet-700/15">
@@ -141,7 +157,7 @@ function Dashboard() {
 
       {/* At risk + Purchase orders */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 panel panel-shadow overflow-hidden border-t-4 border-t-amber-400">
+        <div className="lg:col-span-2 panel panel-shadow overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 card-header-amber">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">At risk of stocking out</h2>
@@ -193,7 +209,7 @@ function Dashboard() {
           )}
         </div>
 
-        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-slate-700">
+        <div className="panel panel-shadow overflow-hidden">
           <div className="px-5 py-4 card-header-slate flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900">Purchase orders</h2>
             <Link to="/purchase-orders" className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 hover:border-blue-200 shadow-sm">
@@ -237,7 +253,7 @@ function Dashboard() {
 
       {/* Recent agent activity */}
       {recentActivity.length > 0 && (
-        <div className="mt-6 panel panel-shadow overflow-hidden border-t-4 border-t-blue-400">
+        <div className="mt-6 panel panel-shadow overflow-hidden">
           <div className="px-5 py-3.5 card-header-blue flex items-center gap-2">
             <Boxes className="w-4 h-4 text-blue-600" />
             <h2 className="text-sm font-semibold text-slate-900">Recent agent activity</h2>
@@ -267,37 +283,4 @@ function Dashboard() {
   )
 }
 
-function StatCard({
-  icon: Icon,
-  color,
-  bg,
-  accent,
-  title,
-  value,
-  sub,
-  highlight,
-}: {
-  icon: typeof Package
-  color: string
-  bg: string
-  accent: string
-  title: string
-  value: string
-  sub: string
-  highlight?: boolean
-}) {
-  return (
-    <div className={`panel panel-shadow p-4 ${accent} ${highlight ? 'bg-gradient-to-br from-white to-red-50/30' : 'bg-white'}`}>
-      <div className="flex items-center gap-3">
-        <div className={`${bg} ${color} p-2.5 rounded-xl shadow-sm border border-white`}>
-          <Icon className="w-5 h-5" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs text-slate-500 font-medium tracking-wide">{title}</p>
-          <p className="text-2xl font-bold text-slate-900 leading-tight">{value}</p>
-          <p className="text-[11px] text-slate-400 truncate">{sub}</p>
-        </div>
-      </div>
-    </div>
-  )
-}
+

@@ -1,4 +1,5 @@
 @import "tailwindcss" source("../");
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
   /* Chrome / ink tokens */
@@ -22,36 +23,37 @@
   --series-aqua: #0891b2;
   --series-violet: #7c3aed;
 
-  /* Shadows - stronger for contrast */
-  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.06);
-  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -4px rgba(15, 23, 42, 0.06);
-  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.07), 0 4px 12px rgba(15, 23, 42, 0.05);
-  --shadow-card-hover: 0 4px 16px rgba(15, 23, 42, 0.1), 0 2px 8px rgba(15, 23, 42, 0.06);
+  /* Shadows - toned down for calm surface */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-md: 0 2px 4px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 4px 8px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.05);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-card-hover: 0 2px 8px rgba(15, 23, 42, 0.07), 0 1px 2px rgba(15, 23, 42, 0.05);
 }
 
 body {
   @apply m-0;
   background-color: var(--color-page);
   color: var(--color-ink-primary);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-    "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-    sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-variant-ligatures: common-ligatures;
+  font-feature-settings: 'cv02','cv03','cv04','cv11';
 }
 
 code {
-  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-variant-ligatures: none;
 }
 
-/* Card / panel system */
+/* Card / panel system — calm, shadowless base */
 .panel {
   background-color: var(--color-surface);
   border: 1px solid var(--color-border);
-  border-radius: 1rem;
-  transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  border-radius: 0.75rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
   overflow: hidden;
 }
 
@@ -67,6 +69,13 @@ code {
   box-shadow: var(--shadow-card-hover);
 }
 
+.panel--elevated {
+  box-shadow: var(--shadow-card);
+}
+.panel--elevated:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
 /* Hide scrollbars but keep scroll functionality */
 .scrollbar-none {
   scrollbar-width: none;
@@ -76,39 +85,27 @@ code {
   display: none;
 }
 
-/* Stronger card header separation and distinct tints */
-.card-header-red {
-  background: linear-gradient(135deg, #fef2f2 0%, #ffffff 100%);
-  border-bottom: 1px solid #fecaca;
-}
-.card-header-blue {
-  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
-  border-bottom: 1px solid #bfdbfe;
-}
-.card-header-violet {
-  background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 100%);
-  border-bottom: 1px solid #ddd6fe;
-}
-.card-header-amber {
-  background: linear-gradient(135deg, #fffbeb 0%, #ffffff 100%);
-  border-bottom: 1px solid #fde68a;
+/* Card headers — flat, no gradients */
+.card-header-red,
+.card-header-blue,
+.card-header-violet,
+.card-header-amber,
+.card-header-slate,
+.card-header-emerald {
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 .card-header-slate {
   background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
-}
-.card-header-emerald {
-  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
-  border-bottom: 1px solid #a7f3d0;
 }
 
-/* Accent variants for stat cards */
-.stat-accent-blue { border-left: 3px solid #2563eb; }
-.stat-accent-red { border-left: 3px solid #dc2626; }
-.stat-accent-amber { border-left: 3px solid #d97706; }
-.stat-accent-violet { border-left: 3px solid #7c3aed; }
-.stat-accent-emerald { border-left: 3px solid #16a34a; }
-.stat-accent-slate { border-left: 3px solid #64748b; }
+/* Accent variants for stat cards — 1px, subtle */
+.stat-accent-blue { border-left: 2px solid #2563eb; }
+.stat-accent-red { border-left: 2px solid #dc2626; }
+.stat-accent-amber { border-left: 2px solid #d97706; }
+.stat-accent-violet { border-left: 2px solid #7c3aed; }
+.stat-accent-emerald { border-left: 2px solid #16a34a; }
+.stat-accent-slate { border-left: 2px solid #64748b; }
 
 /* Section headers */
 .section-header {

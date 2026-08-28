@@ -125,16 +125,43 @@ function ProductDetail() {
         <div className="mb-6 text-sm bg-blue-50 text-blue-700 px-4 py-2.5 rounded-lg border border-blue-100">{message}</div>
       )}
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-        <Stat label="In stock" value={String(product.quantity)} accent="stat-accent-blue" />
-        <Stat label="Reorder at" value={String(product.reorderThreshold)} accent="stat-accent-slate" />
-        <Stat label="Coverage" value={product.coverageDays !== null ? `${product.coverageDays}d` : '—'} accent="stat-accent-violet" />
-        <Stat label="Projected stockout" value={product.projectedStockoutDate ?? '—'} accent="stat-accent-amber" />
-        <Stat label="Recent velocity" value={`${product.recentDailyVelocity}/day`} extra={<TrendLabel trend={product.trend} />} accent="stat-accent-emerald" />
-        <Stat label="Baseline velocity" value={`${product.baselineDailyVelocity}/day`} accent="stat-accent-slate" />
-        <Stat label="Lead time" value={`${product.leadTimeDays}d${product.delayDays ? ` (+${product.delayDays}d delay)` : ''}`} accent="stat-accent-amber" />
-        <Stat label="Cost / Price" value={`${formatMoney(product.costCents)}${(product as any).priceCents ? ` / ${formatMoney((product as any).priceCents)}` : ''}`} accent="stat-accent-blue" />
+      {/* Metrics sheet — dense, no card mosaic */}
+      <div className="panel overflow-hidden mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y divide-slate-200">
+          <div className="px-4 py-3.5">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">In stock</p>
+            <p className="text-base font-semibold text-slate-900 mt-1 tabular-nums">{product.quantity}</p>
+          </div>
+          <div className="px-4 py-3.5">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Reorder at</p>
+            <p className="text-base font-semibold text-slate-900 mt-1 tabular-nums">{product.reorderThreshold}</p>
+          </div>
+          <div className="px-4 py-3.5">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Coverage</p>
+            <p className="text-base font-semibold text-slate-900 mt-1 tabular-nums">{product.coverageDays !== null ? `${product.coverageDays}d` : '—'}</p>
+          </div>
+          <div className="px-4 py-3.5">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Projected stockout</p>
+            <p className="text-sm font-semibold text-slate-900 mt-1">{product.projectedStockoutDate ?? '—'}</p>
+          </div>
+          <div className="px-4 py-3.5">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Recent velocity</p>
+            <p className="text-base font-semibold text-slate-900 mt-1 tabular-nums">{product.recentDailyVelocity}/day</p>
+            <div className="mt-0.5"><TrendLabel trend={product.trend} /></div>
+          </div>
+          <div className="px-4 py-3.5">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Baseline velocity</p>
+            <p className="text-base font-semibold text-slate-900 mt-1 tabular-nums">{product.baselineDailyVelocity}/day</p>
+          </div>
+          <div className="px-4 py-3.5">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Lead time</p>
+            <p className="text-base font-semibold text-slate-900 mt-1 tabular-nums">{product.leadTimeDays}d{product.delayDays ? ` (+${product.delayDays}d)` : ''}</p>
+          </div>
+          <div className="px-4 py-3.5">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Cost / Price</p>
+            <p className="text-sm font-semibold text-slate-900 mt-1 tabular-nums">{formatMoney(product.costCents)}{(product as any).priceCents ? ` / ${formatMoney((product as any).priceCents)}` : ''}</p>
+          </div>
+        </div>
       </div>
 
       {product.delayNote && (
@@ -143,7 +170,7 @@ function ProductDetail() {
 
       {/* Action cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-blue-500">
+        <div className="panel panel-shadow overflow-hidden">
           <div className="card-header-blue px-5 py-3">
             <h2 className="text-sm font-semibold text-slate-900">Reorder recommendation</h2>
           </div>
@@ -179,7 +206,7 @@ function ProductDetail() {
           </div>
         </div>
 
-        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-emerald-500">
+        <div className="panel panel-shadow overflow-hidden">
           <div className="card-header-emerald px-5 py-3">
             <h2 className="text-sm font-semibold text-slate-900">Manual stock adjustment</h2>
           </div>
@@ -223,7 +250,7 @@ function ProductDetail() {
       </div>
 
       {/* Compare suppliers */}
-      <div className="panel panel-shadow overflow-hidden mb-8 border-t-4 border-t-violet-500">
+      <div className="panel panel-shadow overflow-hidden mb-8">
         <div className="card-header-violet px-5 py-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900">Compare suppliers</h2>
           {!comparison && (
@@ -278,7 +305,7 @@ function ProductDetail() {
       </div>
 
       {/* Recent movements */}
-      <div className="panel panel-shadow overflow-hidden border-t-4 border-t-slate-700">
+      <div className="panel panel-shadow overflow-hidden">
         <div className="card-header-slate px-5 py-3">
           <h2 className="text-sm font-semibold text-slate-900">Recent movements</h2>
         </div>

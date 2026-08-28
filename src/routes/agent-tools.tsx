@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { Terminal } from 'lucide-react'
 import { getRecentAgentActivityFn } from '../server/inventory.functions.js'
 import { TOOL_CATALOG } from '../lib/webmcp/tools.js'
 

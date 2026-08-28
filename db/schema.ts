@@ -136,3 +136,12 @@ export const agentActions = pgTable('agent_actions', {
   executedAt: timestamp('executed_at'),
   resultSummary: text('result_summary'),
 })
+
+// Configurable business policies — key-value store for thresholds and rules
+export const businessPolicies = pgTable('business_policies', {
+  id: serial().primaryKey(),
+  key: text().notNull().unique(),
+  value: text().notNull(), // JSON-encoded value
+  description: text(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+})

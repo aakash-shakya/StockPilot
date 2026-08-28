@@ -23,7 +23,7 @@ function AgentActionsPage() {
   async function decide(actionId: number, decision: 'approved' | 'rejected') {
     setBusyId(actionId)
     try {
-      await decideAgentActionFn({ data: { actionId, decision, decidedBy: 'human' } })
+      await decideAgentActionFn({ data: { actionId, decision } })
       await router.invalidate()
     } finally {
       setBusyId(null)
@@ -80,9 +80,7 @@ function AgentActionsPage() {
           {pending.map((action) => (
             <div
               key={action.id}
-              className={`panel panel-shadow p-5 border-l-4 ${
-                action.impact === 'high' ? 'border-l-red-500' : action.impact === 'medium' ? 'border-l-amber-500' : 'border-l-slate-300'
-              }`}
+              className="panel p-5"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
@@ -124,7 +122,7 @@ function AgentActionsPage() {
       {decided.length === 0 ? (
         <p className="text-sm text-gray-400">No decided actions yet.</p>
       ) : (
-        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-slate-600">
+        <div className="panel panel-shadow overflow-hidden">
           <div className="card-header-slate px-5 py-3">
             <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Action history</p>
           </div>
