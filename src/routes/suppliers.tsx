@@ -37,14 +37,18 @@ function SuppliersPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Suppliers</h1>
-        <p className="text-sm text-gray-500">Reliability metrics from real purchase order history.</p>
+        <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight">Suppliers</h1>
+        <p className="text-sm text-slate-500">Reliability metrics from real purchase order history — never estimated.</p>
       </div>
 
       <div className="panel panel-shadow overflow-hidden mb-8">
+        <div className="px-5 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+          <h2 className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Supplier intelligence</h2>
+          <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{intelligence.length} suppliers</span>
+        </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+            <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50/60">
               <th className="px-5 py-3">Supplier</th>
               <th className="px-5 py-3">Lead time</th>
               <th className="px-5 py-3">Delay</th>
@@ -57,21 +61,21 @@ function SuppliersPage() {
           </thead>
           <tbody>
             {intelligence.map((s) => (
-              <tr key={s.supplierId} className="border-b border-gray-50 last:border-0">
-                <td className="px-5 py-3 font-medium text-gray-900">{s.name}</td>
-                <td className="px-5 py-3 text-gray-500">{s.leadTimeDays}d</td>
-                <td className="px-5 py-3 text-gray-500">{s.delayDays > 0 ? `+${s.delayDays}d` : '—'}</td>
-                <td className="px-5 py-3 text-gray-500">{s.onTimePct !== null ? `${s.onTimePct}%` : 'n/a'}</td>
-                <td className="px-5 py-3 text-gray-500">{s.avgDelayDays !== null ? `${s.avgDelayDays}d` : '—'}</td>
-                <td className="px-5 py-3 text-gray-500">{s.activeOrders}</td>
-                <td className="px-5 py-3 text-gray-500">{s.avgCostCents !== null ? formatMoney(s.avgCostCents) : '—'}</td>
-                <td className="px-5 py-3">
+              <tr key={s.supplierId} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/40">
+                <td className="px-5 py-3.5 font-semibold text-slate-900">{s.name}</td>
+                <td className="px-5 py-3.5 text-slate-600">{s.leadTimeDays}d</td>
+                <td className="px-5 py-3.5 text-slate-600">{s.delayDays > 0 ? `+${s.delayDays}d` : '—'}</td>
+                <td className="px-5 py-3.5 text-slate-600">{s.onTimePct !== null ? `${s.onTimePct}%` : 'n/a'}</td>
+                <td className="px-5 py-3.5 text-slate-600">{s.avgDelayDays !== null ? `${s.avgDelayDays}d` : '—'}</td>
+                <td className="px-5 py-3.5 text-slate-600"><span className="bg-slate-100 px-2 py-0.5 rounded-full text-xs">{s.activeOrders}</span></td>
+                <td className="px-5 py-3.5 text-slate-600">{s.avgCostCents !== null ? formatMoney(s.avgCostCents) : '—'}</td>
+                <td className="px-5 py-3.5">
                   {s.reliabilityScore !== null ? (
-                    <span className={`font-medium ${s.reliabilityScore >= 70 ? 'text-emerald-600' : s.reliabilityScore >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                    <span className={`font-bold px-2 py-1 rounded-lg text-xs ${s.reliabilityScore >= 70 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : s.reliabilityScore >= 40 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
                       {s.reliabilityScore}/100
                     </span>
                   ) : (
-                    <span className="text-gray-400">no history</span>
+                    <span className="text-slate-400 text-xs">no history</span>
                   )}
                 </td>
               </tr>
@@ -80,9 +84,12 @@ function SuppliersPage() {
         </table>
       </div>
 
-      <div className="panel panel-shadow p-5">
-        <h2 className="text-sm font-semibold text-gray-900 mb-1">Compare suppliers</h2>
-        <p className="text-xs text-gray-400 mb-4">Side-by-side cost, lead time, and reliability for a specific product.</p>
+      <div className="panel panel-shadow overflow-hidden">
+        <div className="px-5 py-4 bg-gradient-to-r from-blue-50/50 to-transparent border-b border-slate-100">
+          <h2 className="text-sm font-semibold text-slate-900">Compare suppliers</h2>
+          <p className="text-xs text-slate-500">Side-by-side cost, lead time, and reliability for a specific product.</p>
+        </div>
+        <div className="p-5">
         <select
           value={productId}
           onChange={(e) => void handleSelect(e.target.value)}
@@ -96,16 +103,16 @@ function SuppliersPage() {
           ))}
         </select>
 
-        {loading && <p className="text-sm text-gray-400">Comparing…</p>}
+        {loading && <p className="text-sm text-slate-400">Comparing…</p>}
 
         {comparison && !loading && (
           <div>
             {comparison.recommendationReason && (
-              <p className="text-sm bg-blue-50 text-blue-700 px-4 py-2.5 rounded-lg mb-4 border border-blue-100">{comparison.recommendationReason}</p>
+              <p className="text-sm bg-blue-50 text-blue-800 px-4 py-3 rounded-xl mb-4 border border-blue-200">{comparison.recommendationReason}</p>
             )}
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
                   <th className="py-2.5 pr-2">Supplier</th>
                   <th className="py-2.5 pr-2">Unit cost</th>
                   <th className="py-2.5 pr-2">Lead time (+ delay)</th>
@@ -115,17 +122,17 @@ function SuppliersPage() {
               </thead>
               <tbody>
                 {comparison.options.map((o) => (
-                  <tr key={o.supplierId} className="border-b border-gray-50 last:border-0">
-                    <td className="py-2.5 pr-2 font-medium text-gray-900">
+                  <tr key={o.supplierId} className="border-b border-slate-50 last:border-0">
+                    <td className="py-3 pr-2 font-medium text-slate-900">
                       {o.supplierName}
-                      {o.isPrimary && <span className="text-xs text-gray-400 ml-1">(primary)</span>}
+                      {o.isPrimary && <span className="text-xs text-slate-400 ml-1">(primary)</span>}
                     </td>
-                    <td className="py-2.5 pr-2 text-gray-600">{formatMoney(o.unitCostCents)}</td>
-                    <td className="py-2.5 pr-2 text-gray-600">{o.totalLeadDays}d</td>
-                    <td className="py-2.5 pr-2 text-gray-600">{o.reliabilityScore !== null ? `${o.reliabilityScore}/100` : 'n/a'}</td>
-                    <td className="py-2.5 pr-2">
+                    <td className="py-3 pr-2 text-slate-600">{formatMoney(o.unitCostCents)}</td>
+                    <td className="py-3 pr-2 text-slate-600">{o.totalLeadDays}d</td>
+                    <td className="py-3 pr-2 text-slate-600">{o.reliabilityScore !== null ? `${o.reliabilityScore}/100` : 'n/a'}</td>
+                    <td className="py-3 pr-2">
                       {o.supplierId === comparison.recommendedSupplierId && (
-                        <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Recommended</span>
+                        <span className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full font-medium">Recommended</span>
                       )}
                     </td>
                   </tr>
@@ -134,6 +141,7 @@ function SuppliersPage() {
             </table>
           </div>
         )}
+        </div>
       </div>
     </div>
   )

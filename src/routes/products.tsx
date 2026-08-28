@@ -1,16 +1,23 @@
 import { useState } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, Outlet, useMatches } from '@tanstack/react-router'
 import { Search } from 'lucide-react'
 import { getInventorySummaryFn, searchProductsFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 
 export const Route = createFileRoute('/products')({
-  component: ProductsList,
+  component: ProductsLayout,
   loader: async () => {
     const [products, summary] = await Promise.all([searchProductsFn({ data: {} }), getInventorySummaryFn()])
     return { products, categories: summary.categories }
   },
 })
+
+function ProductsLayout() {
+  const matches = useMatches()
+  const isChild = matches.some((m) => m.routeId === '/products/new' || m.routeId === '/products/$productId')
+  if (isChild) return <Outlet />
+  return <ProductsList />
+}
 
 function ProductsList() {
   const { products: initialProducts, categories } = Route.useLoaderData()
@@ -34,8 +41,8 @@ function ProductsList() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Products</h1>
-        <p className="text-sm text-gray-500">{products.length} products in inventory</p>
+        <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight">Products</h1>
+        <p className="text-sm text-slate-500">{products.length} products in inventory • searchable and filterable</p>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
@@ -69,9 +76,13 @@ function ProductsList() {
       </div>
 
       <div className={`panel panel-shadow overflow-hidden transition-opacity duration-200 ${loading ? 'opacity-60' : ''}`}>
+        <div className="px-5 py-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Catalog</p>
+          <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{products.length} items</span>
+        </div>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+            <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50/60">
               <th className="px-5 py-3">SKU</th>
               <th className="px-5 py-3">Name</th>
               <th className="px-5 py-3">Category</th>
@@ -83,27 +94,27 @@ function ProductsList() {
           </thead>
           <tbody>
             {products.map((p) => (
-              <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                <td className="px-5 py-3 text-gray-400 font-mono text-xs">{p.sku}</td>
-                <td className="px-5 py-3">
-                  <Link to="/products/$productId" params={{ productId: String(p.id) }} className="font-medium text-gray-900 hover:text-blue-600">
+              <tr key={p.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                <td className="px-5 py-3.5 text-slate-400 font-mono text-xs">{p.sku}</td>
+                <td className="px-5 py-3.5">
+                  <Link to="/products/$productId" params={{ productId: String(p.id) }} className="font-medium text-slate-900 hover:text-blue-600">
                     {p.name}
                   </Link>
                 </td>
-                <td className="px-5 py-3 text-gray-500">{p.category}</td>
-                <td className="px-5 py-3 text-gray-500">{p.supplierName}</td>
-                <td className="px-5 py-3">
-                  <span className={`font-medium ${p.quantity <= p.reorderThreshold ? 'text-amber-600' : 'text-gray-900'}`}>
+                <td className="px-5 py-3.5 text-slate-500"><span className="bg-slate-100 px-2 py-0.5 rounded-full text-xs">{p.category}</span></td>
+                <td className="px-5 py-3.5 text-slate-500">{p.supplierName}</td>
+                <td className="px-5 py-3.5">
+                  <span className={`font-semibold px-2 py-0.5 rounded-full text-xs ${p.quantity <= p.reorderThreshold ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-slate-50 text-slate-700'}`}>
                     {p.quantity}
                   </span>
                 </td>
-                <td className="px-5 py-3 text-gray-400">{p.reorderThreshold}</td>
-                <td className="px-5 py-3 text-right font-medium text-gray-900">{formatMoney(p.priceCents)}</td>
+                <td className="px-5 py-3.5 text-slate-400">{p.reorderThreshold}</td>
+                <td className="px-5 py-3.5 text-right font-semibold text-slate-900">{formatMoney(p.priceCents)}</td>
               </tr>
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-12 text-center text-gray-400">
+                <td colSpan={7} className="py-12 text-center text-slate-400">
                   No products match your search.
                 </td>
               </tr>

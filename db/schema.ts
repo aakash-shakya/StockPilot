@@ -96,6 +96,26 @@ export const productSuppliers = pgTable('product_suppliers', {
   isPrimary: boolean('is_primary').notNull().default(false),
 })
 
+export const users = pgTable('users', {
+  id: serial().primaryKey(),
+  email: text().notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  name: text().notNull(),
+  role: text().notNull().default('admin'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+})
+
+export const sessions = pgTable('sessions', {
+  id: serial().primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  token: text().notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+})
+
 // Proposals raised by the agent (or a human workflow) that require an explicit
 // approve/reject decision before anything consequential happens. Distinct from
 // agentToolCalls, which is a raw call log — this is the human-in-the-loop queue.
