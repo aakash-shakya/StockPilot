@@ -50,9 +50,9 @@ function AgentActionsPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Agent Action Center</h1>
-          <p className="text-gray-500 mt-1">
-            Every consequential action an agent proposes lands here first. Nothing executes until it's approved.
+          <h1 className="text-2xl font-bold text-gray-900">Agent Actions</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Consequential actions proposed by agents. Nothing executes until approved.
           </p>
         </div>
         <button
@@ -65,25 +65,27 @@ function AgentActionsPage() {
         </button>
       </div>
 
-      {message && <div className="mb-6 text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-lg">{message}</div>}
+      {message && (
+        <div className="mb-6 text-sm bg-blue-50 text-blue-700 px-4 py-2.5 rounded-lg border border-blue-100">{message}</div>
+      )}
 
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">Pending approval ({pending.length})</h2>
+      <h2 className="text-sm font-semibold text-gray-900 mb-3">Pending ({pending.length})</h2>
       {pending.length === 0 ? (
-        <p className="text-sm text-gray-500 mb-8">Nothing waiting on you right now.</p>
+        <p className="text-sm text-gray-400 mb-8">Nothing waiting on you.</p>
       ) : (
-        <div className="space-y-4 mb-8">
+        <div className="space-y-3 mb-8">
           {pending.map((action) => (
-            <div key={action.id} className="panel panel-shadow p-6">
+            <div key={action.id} className="panel panel-shadow p-5">
               <div className="flex items-start justify-between gap-4">
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-gray-900">{action.title}</h3>
+                    <h3 className="font-semibold text-gray-900 text-sm">{action.title}</h3>
                     <ImpactBadge impact={action.impact} />
                     {action.estimatedCostCents != null && (
                       <span className="text-xs text-gray-400">{formatMoney(action.estimatedCostCents)}</span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-600">{action.reasoning}</p>
+                  <p className="text-sm text-gray-500">{action.reasoning}</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
                   <button
@@ -107,33 +109,33 @@ function AgentActionsPage() {
         </div>
       )}
 
-      <h2 className="text-lg font-semibold text-gray-900 mb-3">History</h2>
+      <h2 className="text-sm font-semibold text-gray-900 mb-3">History</h2>
       {decided.length === 0 ? (
-        <p className="text-sm text-gray-500">No decided actions yet.</p>
+        <p className="text-sm text-gray-400">No decided actions yet.</p>
       ) : (
         <div className="panel panel-shadow overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-gray-500 border-b bg-gray-50">
-                <th className="py-2.5 px-4">Title</th>
-                <th className="py-2.5 px-4">Status</th>
-                <th className="py-2.5 px-4">Impact</th>
-                <th className="py-2.5 px-4">Result</th>
-                <th className="py-2.5 px-4">Decided</th>
+              <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                <th className="px-5 py-3">Title</th>
+                <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3">Impact</th>
+                <th className="px-5 py-3">Result</th>
+                <th className="px-5 py-3">Decided</th>
               </tr>
             </thead>
             <tbody>
               {decided.map((action) => (
-                <tr key={action.id} className="border-b last:border-0">
-                  <td className="py-2.5 px-4 text-gray-900">{action.title}</td>
-                  <td className="py-2.5 px-4">
+                <tr key={action.id} className="border-b border-gray-50 last:border-0">
+                  <td className="px-5 py-3 font-medium text-gray-900">{action.title}</td>
+                  <td className="px-5 py-3">
                     <ActionStatusBadge status={action.status} />
                   </td>
-                  <td className="py-2.5 px-4">
+                  <td className="px-5 py-3">
                     <ImpactBadge impact={action.impact} />
                   </td>
-                  <td className="py-2.5 px-4 text-gray-500">{action.resultSummary ?? '—'}</td>
-                  <td className="py-2.5 px-4 text-gray-400">
+                  <td className="px-5 py-3 text-gray-500 text-xs">{action.resultSummary ?? '—'}</td>
+                  <td className="px-5 py-3 text-gray-400 text-xs">
                     {action.decidedAt ? new Date(action.decidedAt).toLocaleString() : '—'}
                   </td>
                 </tr>
@@ -143,12 +145,12 @@ function AgentActionsPage() {
         </div>
       )}
 
-      <p className="text-sm text-gray-400 mt-6">
-        Looking for the full raw call log instead of proposals? See{' '}
-        <Link to="/agent-tools" className="text-blue-600 hover:underline">
+      <p className="text-xs text-gray-400 mt-6">
+        See{' '}
+        <Link to="/agent-tools" className="text-blue-600 hover:text-blue-700">
           Agent Tools
-        </Link>
-        .
+        </Link>{' '}
+        for the full raw call log.
       </p>
     </div>
   )

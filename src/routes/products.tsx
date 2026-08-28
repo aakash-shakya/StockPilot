@@ -33,7 +33,10 @@ function ProductsList() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Products</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">Products</h1>
+        <p className="text-sm text-gray-500">{products.length} products in inventory</p>
+      </div>
 
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="relative flex-1 min-w-64">
@@ -45,7 +48,7 @@ function ProductsList() {
               void runSearch(e.target.value, category)
             }}
             placeholder="Search by name or SKU..."
-            className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input pl-9"
           />
         </div>
         <select
@@ -54,7 +57,7 @@ function ProductsList() {
             setCategory(e.target.value)
             void runSearch(query, e.target.value)
           }}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="input w-auto min-w-[160px]"
         >
           <option value="">All categories</option>
           {categories.map((c) => (
@@ -65,41 +68,43 @@ function ProductsList() {
         </select>
       </div>
 
-      <div className={`bg-white rounded-xl shadow-sm overflow-hidden ${loading ? 'opacity-60' : ''}`}>
+      <div className={`panel panel-shadow overflow-hidden transition-opacity duration-200 ${loading ? 'opacity-60' : ''}`}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-500 border-b bg-gray-50">
-              <th className="py-2.5 px-4">SKU</th>
-              <th className="py-2.5 px-4">Name</th>
-              <th className="py-2.5 px-4">Category</th>
-              <th className="py-2.5 px-4">Supplier</th>
-              <th className="py-2.5 px-4">Stock</th>
-              <th className="py-2.5 px-4">Reorder at</th>
-              <th className="py-2.5 px-4">Price</th>
+            <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+              <th className="px-5 py-3">SKU</th>
+              <th className="px-5 py-3">Name</th>
+              <th className="px-5 py-3">Category</th>
+              <th className="px-5 py-3">Supplier</th>
+              <th className="px-5 py-3">Stock</th>
+              <th className="px-5 py-3">Reorder at</th>
+              <th className="px-5 py-3 text-right">Price</th>
             </tr>
           </thead>
           <tbody>
             {products.map((p) => (
-              <tr key={p.id} className="border-b last:border-0 hover:bg-gray-50">
-                <td className="py-2.5 px-4 text-gray-400">{p.sku}</td>
-                <td className="py-2.5 px-4">
+              <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+                <td className="px-5 py-3 text-gray-400 font-mono text-xs">{p.sku}</td>
+                <td className="px-5 py-3">
                   <Link to="/products/$productId" params={{ productId: String(p.id) }} className="font-medium text-gray-900 hover:text-blue-600">
                     {p.name}
                   </Link>
                 </td>
-                <td className="py-2.5 px-4 text-gray-500">{p.category}</td>
-                <td className="py-2.5 px-4 text-gray-500">{p.supplierName}</td>
-                <td className="py-2.5 px-4">
-                  <span className={p.quantity <= p.reorderThreshold ? 'text-amber-600 font-medium' : ''}>{p.quantity}</span>
+                <td className="px-5 py-3 text-gray-500">{p.category}</td>
+                <td className="px-5 py-3 text-gray-500">{p.supplierName}</td>
+                <td className="px-5 py-3">
+                  <span className={`font-medium ${p.quantity <= p.reorderThreshold ? 'text-amber-600' : 'text-gray-900'}`}>
+                    {p.quantity}
+                  </span>
                 </td>
-                <td className="py-2.5 px-4 text-gray-400">{p.reorderThreshold}</td>
-                <td className="py-2.5 px-4">{formatMoney(p.priceCents)}</td>
+                <td className="px-5 py-3 text-gray-400">{p.reorderThreshold}</td>
+                <td className="px-5 py-3 text-right font-medium text-gray-900">{formatMoney(p.priceCents)}</td>
               </tr>
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-gray-400">
-                  No products match.
+                <td colSpan={7} className="py-12 text-center text-gray-400">
+                  No products match your search.
                 </td>
               </tr>
             )}
