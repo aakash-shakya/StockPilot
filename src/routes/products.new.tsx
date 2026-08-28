@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { CheckCircle2, Sparkles } from 'lucide-react'
+import { ArrowLeft, CheckCircle2, Sparkles } from 'lucide-react'
 import { createProductFromDraftFn, draftProductFn, getSuppliersFn, getInventorySummaryFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 
@@ -89,8 +89,8 @@ function NewProductPage() {
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
         <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
         <h1 className="text-2xl font-bold text-gray-900 mb-1">{created.name} created</h1>
-        <p className="text-gray-500 mb-6">SKU {created.sku} is now live in the catalog.</p>
-        <Link to="/products/$productId" params={{ productId: String(created.id) }} className="text-blue-600 hover:underline text-sm">
+        <p className="text-sm text-gray-500 mb-6">SKU {created.sku} is now live in the catalog.</p>
+        <Link to="/products/$productId" params={{ productId: String(created.id) }} className="text-sm font-medium text-blue-600 hover:text-blue-700">
           View product →
         </Link>
       </div>
@@ -99,13 +99,20 @@ function NewProductPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-      <h1 className="text-3xl font-bold text-gray-900 mb-1">Generate Product</h1>
-      <p className="text-gray-500 mb-8">A SKU is generated deterministically from category, brand, model, and variant — never guessed by an LLM.</p>
+      <Link to="/products" className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-3">
+        <ArrowLeft className="w-3 h-3" /> Products
+      </Link>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">New Product</h1>
+        <p className="text-sm text-gray-500">SKU is generated deterministically from category, brand, model, and variant.</p>
+      </div>
 
-      {error && <div className="mb-6 text-sm bg-red-50 text-red-700 px-4 py-2 rounded-lg">{error}</div>}
+      {error && (
+        <div className="mb-6 text-sm bg-red-50 text-red-700 px-4 py-2.5 rounded-lg border border-red-100">{error}</div>
+      )}
 
       {!draft ? (
-        <div className="panel panel-shadow p-6 space-y-4">
+        <div className="panel panel-shadow p-5 space-y-4">
           <Field label="Product name">
             <input value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="Wireless Mouse Pro" />
           </Field>
@@ -161,25 +168,23 @@ function NewProductPage() {
           </button>
         </div>
       ) : (
-        <div className="panel panel-shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Review before creating</h2>
-          <p className="text-sm text-gray-500 mb-4">Nothing has been saved yet. Confirm to add this to the live catalog.</p>
-          <dl className="grid grid-cols-2 gap-y-2 text-sm mb-6">
-            <dt className="text-gray-500">SKU</dt>
-            <dd className="font-mono text-gray-900">{draft.sku}</dd>
-            <dt className="text-gray-500">Name</dt>
+        <div className="panel panel-shadow p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1">Review before creating</h2>
+          <p className="text-xs text-gray-400 mb-4">Nothing has been saved yet.</p>
+          <dl className="grid grid-cols-2 gap-y-2.5 text-sm mb-6">
+            <dt className="text-gray-400 text-xs">SKU</dt>
+            <dd className="font-mono text-gray-900 text-xs">{draft.sku}</dd>
+            <dt className="text-gray-400 text-xs">Name</dt>
             <dd className="text-gray-900">{draft.name}</dd>
-            <dt className="text-gray-500">Category</dt>
+            <dt className="text-gray-400 text-xs">Category</dt>
             <dd className="text-gray-900">{draft.category}</dd>
-            <dt className="text-gray-500">Supplier</dt>
+            <dt className="text-gray-400 text-xs">Supplier</dt>
             <dd className="text-gray-900">{draft.supplierName}</dd>
-            <dt className="text-gray-500">Cost / Price</dt>
-            <dd className="text-gray-900">
-              {formatMoney(draft.costCents)} / {formatMoney(draft.priceCents)}
-            </dd>
-            <dt className="text-gray-500">Initial quantity</dt>
+            <dt className="text-gray-400 text-xs">Cost / Price</dt>
+            <dd className="text-gray-900">{formatMoney(draft.costCents)} / {formatMoney(draft.priceCents)}</dd>
+            <dt className="text-gray-400 text-xs">Initial quantity</dt>
             <dd className="text-gray-900">{draft.quantity}</dd>
-            <dt className="text-gray-500">Reorder threshold</dt>
+            <dt className="text-gray-400 text-xs">Reorder threshold</dt>
             <dd className="text-gray-900">{draft.reorderThreshold}</dd>
           </dl>
           <div className="flex gap-2">
@@ -203,7 +208,7 @@ function NewProductPage() {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="text-xs text-gray-500 block mb-1">{label}</span>
+      <span className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block mb-1">{label}</span>
       {children}
     </label>
   )

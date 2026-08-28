@@ -58,22 +58,24 @@ function ReportsPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-      <h1 className="text-3xl font-bold text-gray-900 mb-1">Reports Studio</h1>
-      <p className="text-gray-500 mb-8">Describe the report you want in plain English. Parsing is deterministic and rule-based.</p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">Reports</h1>
+        <p className="text-sm text-gray-500">Describe what you want in plain English. Deterministic parsing.</p>
+      </div>
 
-      <div className="panel panel-shadow p-6 mb-8">
+      <div className="panel panel-shadow p-5 mb-8">
         <div className="flex flex-wrap gap-3 mb-3">
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && void runReport(query)}
             placeholder='e.g. "monthly inventory report" or "which suppliers are underperforming"'
-            className="flex-1 min-w-64 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input flex-1 min-w-64"
           />
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="input w-auto min-w-[140px]"
           >
             <option value="">All categories</option>
             {categories.map((c) => (
@@ -88,7 +90,7 @@ function ReportsPage() {
             className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
           >
             <FileBarChart className="w-4 h-4" />
-            {loading ? 'Generating…' : 'Generate report'}
+            {loading ? 'Generating…' : 'Generate'}
           </button>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -99,7 +101,7 @@ function ReportsPage() {
                 setQuery(example)
                 void runReport(example)
               }}
-              className="text-xs text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-full"
+              className="text-xs text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-full transition-colors"
             >
               {example}
             </button>
@@ -111,7 +113,7 @@ function ReportsPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">{report.title}</h2>
+              <h2 className="text-lg font-semibold text-gray-900">{report.title}</h2>
               <p className="text-xs text-gray-400">Generated {new Date(report.generatedAt).toLocaleString()}</p>
             </div>
             <button
@@ -120,21 +122,21 @@ function ReportsPage() {
               className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
             >
               <Download className="w-4 h-4" />
-              {exporting ? 'Exporting…' : 'Export CSV'}
+              {exporting ? 'Exporting…' : 'CSV'}
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
             {report.kpis.map((kpi, idx) => (
               <div key={idx} className="panel panel-shadow p-4">
-                <p className="text-xs text-gray-500">{kpi.label}</p>
-                <p className="text-xl font-bold text-gray-900">{kpi.value ?? '—'}</p>
+                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">{kpi.label}</p>
+                <p className="text-xl font-bold text-gray-900 mt-0.5">{kpi.value ?? '—'}</p>
               </div>
             ))}
           </div>
 
           {(report.findings.length > 0 || report.recommendations.length > 0) && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div className="panel panel-shadow p-4">
                 <h3 className="text-sm font-semibold text-gray-900 mb-2">Findings</h3>
                 {report.findings.length === 0 ? (
@@ -165,9 +167,9 @@ function ReportsPage() {
           <div className="panel panel-shadow overflow-hidden overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-gray-500 border-b bg-gray-50">
+                <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
                   {columns.map((col) => (
-                    <th key={col} className="py-2.5 px-4 whitespace-nowrap capitalize">
+                    <th key={col} className="px-5 py-3 whitespace-nowrap">
                       {col.replace(/([A-Z])/g, ' $1')}
                     </th>
                   ))}
@@ -175,9 +177,9 @@ function ReportsPage() {
               </thead>
               <tbody>
                 {report.rows.map((row, idx) => (
-                  <tr key={idx} className="border-b last:border-0">
+                  <tr key={idx} className="border-b border-gray-50 last:border-0">
                     {columns.map((col) => (
-                      <td key={col} className="py-2 px-4 text-gray-600 whitespace-nowrap">
+                      <td key={col} className="px-5 py-2.5 text-gray-600 whitespace-nowrap text-xs">
                         {String((row as Record<string, unknown>)[col] ?? '—')}
                       </td>
                     ))}
@@ -185,7 +187,7 @@ function ReportsPage() {
                 ))}
                 {report.rows.length === 0 && (
                   <tr>
-                    <td className="py-8 text-center text-gray-400">No rows for this report.</td>
+                    <td className="py-12 text-center text-gray-400">No rows for this report.</td>
                   </tr>
                 )}
               </tbody>

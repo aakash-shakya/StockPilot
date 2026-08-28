@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { Sliders } from 'lucide-react'
+import { ArrowLeft, Sliders } from 'lucide-react'
 import { compareSuppliersFn, getProductDetailsFn, recommendReorderFn, createPurchaseOrderFn, updateStockFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 import { RiskBadge, TrendLabel } from '../components/badges.js'
@@ -95,29 +95,38 @@ function ProductDetail() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
-          <p className="text-gray-500">
-            {product.sku} · {product.category} · supplied by {product.supplierName}
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Link
-            to="/simulator"
-            search={{ productId: product.productId }}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900"
-          >
-            <Sliders className="w-4 h-4" />
-            Simulate
-          </Link>
-          <RiskBadge level={product.riskLevel} />
+      {/* Header */}
+      <div className="mb-6">
+        <Link to="/products" className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-3">
+          <ArrowLeft className="w-3 h-3" /> Products
+        </Link>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {product.sku} · {product.category} · {product.supplierName}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/simulator"
+              search={{ productId: product.productId }}
+              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900"
+            >
+              <Sliders className="w-4 h-4" />
+              Simulate
+            </Link>
+            <RiskBadge level={product.riskLevel} />
+          </div>
         </div>
       </div>
 
-      {message && <div className="mb-6 text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-lg">{message}</div>}
+      {message && (
+        <div className="mb-6 text-sm bg-blue-50 text-blue-700 px-4 py-2.5 rounded-lg border border-blue-100">{message}</div>
+      )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
         <Stat label="In stock" value={String(product.quantity)} />
         <Stat label="Reorder at" value={String(product.reorderThreshold)} />
         <Stat label="Coverage" value={product.coverageDays !== null ? `${product.coverageDays}d` : '—'} />
@@ -129,26 +138,26 @@ function ProductDetail() {
       </div>
 
       {product.delayNote && (
-        <div className="mb-8 text-sm bg-amber-50 text-amber-700 px-4 py-2 rounded-lg">{product.delayNote}</div>
+        <div className="mb-8 text-sm bg-amber-50 text-amber-700 px-4 py-2.5 rounded-lg border border-amber-100">{product.delayNote}</div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Reorder recommendation</h2>
+      {/* Action cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
+        <div className="panel panel-shadow p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">Reorder recommendation</h2>
           {!recommendation ? (
             <button
               onClick={handleRecommend}
               disabled={recommending}
               className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
             >
-              {recommending ? 'Calculating…' : 'Recommend reorder quantity'}
+              {recommending ? 'Calculating…' : 'Get recommendation'}
             </button>
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-gray-600">
                 Suggested: <span className="font-semibold text-gray-900">{recommendation.suggestedQuantity} units</span> (
-                {formatMoney(recommendation.estimatedCostCents)}) to cover target coverage plus supplier lead time and any
-                known delay.
+                {formatMoney(recommendation.estimatedCostCents)}).
               </p>
               <div className="flex gap-2">
                 <button
@@ -156,7 +165,7 @@ function ProductDetail() {
                   disabled={creatingPo || recommendation.suggestedQuantity <= 0}
                   className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {creatingPo ? 'Creating…' : 'Create draft purchase order'}
+                  {creatingPo ? 'Creating…' : 'Create draft PO'}
                 </button>
                 <button onClick={() => setRecommendation(null)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">
                   Dismiss
@@ -166,8 +175,8 @@ function ProductDetail() {
           )}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Manual stock adjustment</h2>
+        <div className="panel panel-shadow p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3">Manual stock adjustment</h2>
           <form onSubmit={handleAdjust} className="space-y-3">
             <div className="flex gap-2">
               <input
@@ -175,12 +184,12 @@ function ProductDetail() {
                 value={adjustQty}
                 onChange={(e) => setAdjustQty(e.target.value)}
                 placeholder="e.g. -3 or 10"
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input flex-1"
               />
               <select
                 value={adjustType}
                 onChange={(e) => setAdjustType(e.target.value as MovementType)}
-                className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="input w-auto min-w-[130px]"
               >
                 <option value="adjustment">Adjustment</option>
                 <option value="restock">Restock</option>
@@ -192,7 +201,7 @@ function ProductDetail() {
               value={adjustNote}
               onChange={(e) => setAdjustNote(e.target.value)}
               placeholder="Reason (optional)"
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="input"
             />
             <button
               type="submit"
@@ -205,9 +214,10 @@ function ProductDetail() {
         </div>
       </div>
 
-      <div className="panel panel-shadow p-6 mb-8">
+      {/* Compare suppliers */}
+      <div className="panel panel-shadow p-5 mb-8">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-900">Compare suppliers</h2>
+          <h2 className="text-sm font-semibold text-gray-900">Compare suppliers</h2>
           {!comparison && (
             <button
               onClick={() => void handleCompare()}
@@ -222,29 +232,29 @@ function ProductDetail() {
         {comparison && !comparing && (
           <div>
             {comparison.recommendationReason && (
-              <p className="text-sm bg-blue-50 text-blue-700 px-4 py-2 rounded-lg mb-4">{comparison.recommendationReason}</p>
+              <p className="text-sm bg-blue-50 text-blue-700 px-4 py-2.5 rounded-lg mb-4 border border-blue-100">{comparison.recommendationReason}</p>
             )}
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-gray-500 border-b">
-                  <th className="py-2 pr-2">Supplier</th>
-                  <th className="py-2 pr-2">Unit cost</th>
-                  <th className="py-2 pr-2">Lead time (+ delay)</th>
-                  <th className="py-2 pr-2">Reliability</th>
-                  <th className="py-2 pr-2"></th>
+                <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                  <th className="py-2.5 pr-2">Supplier</th>
+                  <th className="py-2.5 pr-2">Unit cost</th>
+                  <th className="py-2.5 pr-2">Lead time (+ delay)</th>
+                  <th className="py-2.5 pr-2">Reliability</th>
+                  <th className="py-2.5 pr-2"></th>
                 </tr>
               </thead>
               <tbody>
                 {comparison.options.map((o) => (
-                  <tr key={o.supplierId} className="border-b last:border-0">
-                    <td className="py-2 pr-2 font-medium text-gray-900">
+                  <tr key={o.supplierId} className="border-b border-gray-50 last:border-0">
+                    <td className="py-2.5 pr-2 font-medium text-gray-900">
                       {o.supplierName}
                       {o.isPrimary && <span className="text-xs text-gray-400 ml-1">(primary)</span>}
                     </td>
-                    <td className="py-2 pr-2 text-gray-600">{formatMoney(o.unitCostCents)}</td>
-                    <td className="py-2 pr-2 text-gray-600">{o.totalLeadDays}d</td>
-                    <td className="py-2 pr-2 text-gray-600">{o.reliabilityScore !== null ? `${o.reliabilityScore}/100` : 'n/a'}</td>
-                    <td className="py-2 pr-2">
+                    <td className="py-2.5 pr-2 text-gray-600">{formatMoney(o.unitCostCents)}</td>
+                    <td className="py-2.5 pr-2 text-gray-600">{o.totalLeadDays}d</td>
+                    <td className="py-2.5 pr-2 text-gray-600">{o.reliabilityScore !== null ? `${o.reliabilityScore}/100` : 'n/a'}</td>
+                    <td className="py-2.5 pr-2">
                       {o.supplierId === comparison.recommendedSupplierId && (
                         <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Recommended</span>
                       )}
@@ -257,29 +267,29 @@ function ProductDetail() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <h2 className="text-lg font-semibold text-gray-900 px-6 pt-6 pb-3">Recent movements</h2>
+      {/* Recent movements */}
+      <div className="panel panel-shadow overflow-hidden">
+        <h2 className="text-sm font-semibold text-gray-900 px-5 pt-5 pb-3">Recent movements</h2>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-500 border-b bg-gray-50">
-              <th className="py-2.5 px-6">Date</th>
-              <th className="py-2.5 px-4">Type</th>
-              <th className="py-2.5 px-4">Change</th>
-              <th className="py-2.5 px-4">Actor</th>
-              <th className="py-2.5 px-4">Note</th>
+            <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+              <th className="px-5 py-2.5">Date</th>
+              <th className="px-5 py-2.5">Type</th>
+              <th className="px-5 py-2.5">Change</th>
+              <th className="px-5 py-2.5">Actor</th>
+              <th className="px-5 py-2.5">Note</th>
             </tr>
           </thead>
           <tbody>
             {product.recentMovements.map((m: any) => (
-              <tr key={m.id} className="border-b last:border-0">
-                <td className="py-2.5 px-6 text-gray-400">{new Date(m.createdAt).toLocaleDateString()}</td>
-                <td className="py-2.5 px-4 capitalize">{m.type}</td>
-                <td className={`py-2.5 px-4 font-medium ${m.quantityDelta < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                  {m.quantityDelta > 0 ? '+' : ''}
-                  {m.quantityDelta}
+              <tr key={m.id} className="border-b border-gray-50 last:border-0">
+                <td className="px-5 py-2.5 text-gray-400 text-xs font-mono">{new Date(m.createdAt).toLocaleDateString()}</td>
+                <td className="px-5 py-2.5 capitalize text-gray-600">{m.type}</td>
+                <td className={`px-5 py-2.5 font-medium ${m.quantityDelta < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {m.quantityDelta > 0 ? '+' : ''}{m.quantityDelta}
                 </td>
-                <td className="py-2.5 px-4 text-gray-500 capitalize">{m.actor}</td>
-                <td className="py-2.5 px-4 text-gray-400">{m.note ?? '—'}</td>
+                <td className="px-5 py-2.5 text-gray-500 capitalize">{m.actor}</td>
+                <td className="px-5 py-2.5 text-gray-400 text-xs">{m.note ?? '—'}</td>
               </tr>
             ))}
           </tbody>
@@ -291,9 +301,9 @@ function ProductDetail() {
 
 function Stat({ label, value, extra }: { label: string; value: string; extra?: ReactNode }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4">
-      <p className="text-xs text-gray-500">{label}</p>
-      <p className="text-lg font-semibold text-gray-900">{value}</p>
+    <div className="panel p-3.5">
+      <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">{label}</p>
+      <p className="text-base font-semibold text-gray-900 mt-0.5">{value}</p>
       {extra}
     </div>
   )
