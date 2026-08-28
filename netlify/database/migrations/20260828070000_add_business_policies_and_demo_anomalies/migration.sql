@@ -29,12 +29,12 @@ INSERT INTO "inventory_movements" ("product_id", "type", "quantity_delta", "note
 (42, 'adjustment', -15, NULL, 'human', NOW() - INTERVAL '3 days');
 
 -- Overdue PO: approved 18 days ago, still not received
-INSERT INTO "purchase_orders" ("id", "po_number", "supplier_id", "status", "notes", "created_by", "created_at", "approved_at", "received_at") VALUES
-(18, 'PO-1057', 3, 'approved', 'Urgent restock for headphones and speakers', 'agent', NOW() - INTERVAL '20 days', NOW() - INTERVAL '18 days', NULL);
+INSERT INTO "purchase_orders" ("po_number", "supplier_id", "status", "notes", "created_by", "created_at", "approved_at", "received_at") VALUES
+('PO-1057', 3, 'approved', 'Urgent restock for headphones and speakers', 'agent', NOW() - INTERVAL '20 days', NOW() - INTERVAL '18 days', NULL);
 
 INSERT INTO "purchase_order_items" ("purchase_order_id", "product_id", "quantity", "unit_cost_cents") VALUES
-(18, 9, 15, 6800),
-(18, 8, 20, 3400);
+(currval('purchase_orders_id_seq'), 9, 15, 6800),
+(currval('purchase_orders_id_seq'), 8, 20, 3400);
 
 -- Advance serial sequences
 SELECT setval('business_policies_id_seq', (SELECT MAX("id") FROM "business_policies"));
