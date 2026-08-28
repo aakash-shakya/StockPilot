@@ -27,22 +27,30 @@ function HealthPage() {
         <p className="text-sm text-slate-500">{worryAbout.summary}</p>
       </div>
 
-      {/* Severity stats - distinct accents */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="panel panel-shadow p-4 stat-accent-red bg-gradient-to-br from-white to-red-50/20">
-          <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">High severity</p>
-          <p className="text-3xl font-bold text-red-600 mt-1">{health.highSeverityCount}</p>
-          <p className="text-xs text-slate-400">immediate action</p>
-        </div>
-        <div className="panel panel-shadow p-4 stat-accent-amber bg-gradient-to-br from-white to-orange-50/20">
-          <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Medium severity</p>
-          <p className="text-3xl font-bold text-orange-600 mt-1">{health.mediumSeverityCount}</p>
-          <p className="text-xs text-slate-400">plan soon</p>
-        </div>
-        <div className="panel panel-shadow p-4 stat-accent-violet bg-gradient-to-br from-white to-amber-50/20">
-          <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">Low severity</p>
-          <p className="text-3xl font-bold text-amber-600 mt-1">{health.lowSeverityCount}</p>
-          <p className="text-xs text-slate-400">monitor</p>
+      {/* Severity KPI bar */}
+      <div className="panel overflow-hidden mb-8">
+        <div className="grid grid-cols-3 divide-x divide-slate-200">
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-500" /> High severity
+            </p>
+            <p className="text-3xl font-bold text-red-600 mt-1 tabular-nums">{health.highSeverityCount}</p>
+            <p className="text-xs text-slate-500 mt-0.5">immediate action</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-orange-500" /> Medium severity
+            </p>
+            <p className="text-3xl font-bold text-orange-600 mt-1 tabular-nums">{health.mediumSeverityCount}</p>
+            <p className="text-xs text-slate-500 mt-0.5">plan soon</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500" /> Low severity
+            </p>
+            <p className="text-3xl font-bold text-amber-600 mt-1 tabular-nums">{health.lowSeverityCount}</p>
+            <p className="text-xs text-slate-500 mt-0.5">monitor</p>
+          </div>
         </div>
       </div>
 

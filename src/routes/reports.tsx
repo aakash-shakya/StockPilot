@@ -131,13 +131,15 @@ function ReportsPage() {
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-            {report.kpis.map((kpi, idx) => (
-              <div key={idx} className="panel panel-shadow p-4">
-                <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">{kpi.label}</p>
-                <p className="text-xl font-bold text-gray-900 mt-0.5">{kpi.value ?? '—'}</p>
-              </div>
-            ))}
+          <div className="panel overflow-hidden mb-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y divide-slate-200">
+              {report.kpis.map((kpi, idx) => (
+                <div key={idx} className="px-5 py-4">
+                  <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{kpi.label}</p>
+                  <p className="text-xl font-bold text-slate-900 mt-1 tabular-nums">{kpi.value ?? '—'}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {(report.findings.length > 0 || report.recommendations.length > 0) && (

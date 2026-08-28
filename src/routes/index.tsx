@@ -41,20 +41,36 @@ function Dashboard() {
         </p>
       </div>
 
-      {/* Stat cards - distinct accents */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard icon={Package} color="text-blue-600" bg="bg-blue-50" accent="stat-accent-blue" title="Products" value={String(summary.totalProducts)} sub={`${summary.totalUnits} units on hand`} />
-        <StatCard icon={AlertTriangle} color="text-red-600" bg="bg-red-50" accent="stat-accent-red" title="Critical" value={String(summary.criticalCount)} sub="≤2 days of stock left" highlight={summary.criticalCount > 0} />
-        <StatCard icon={AlertTriangle} color="text-amber-600" bg="bg-amber-50" accent="stat-accent-amber" title="Warning" value={String(summary.warningCount)} sub="below reorder point" />
-        <StatCard
-          icon={TimerReset}
-          color="text-violet-600"
-          bg="bg-violet-50"
-          accent="stat-accent-violet"
-          title="Avg. Coverage"
-          value={summary.avgCoverageDays !== null ? `${summary.avgCoverageDays}d` : '—'}
-          sub="across all products"
-        />
+      {/* KPI bar — single row, no card mosaic */}
+      <div className="panel overflow-hidden mb-8 divide-y-0">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-200">
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Products</p>
+            <p className="text-2xl font-bold text-slate-900 tracking-tight mt-1 tabular-nums">{summary.totalProducts}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">{summary.totalUnits} units on hand</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-red-500" /> Critical
+            </p>
+            <p className="text-2xl font-bold text-red-600 tracking-tight mt-1 tabular-nums">{summary.criticalCount}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">≤2 days of stock left</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-amber-500" /> Warning
+            </p>
+            <p className="text-2xl font-bold text-amber-600 tracking-tight mt-1 tabular-nums">{summary.warningCount}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">below reorder point</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Avg. Coverage</p>
+            <p className="text-2xl font-bold text-slate-900 tracking-tight mt-1 tabular-nums">
+              {summary.avgCoverageDays !== null ? `${summary.avgCoverageDays}d` : '—'}
+            </p>
+            <p className="text-[11px] text-slate-500 mt-0.5">across all products</p>
+          </div>
+        </div>
       </div>
 
       {/* Main content grid */}
