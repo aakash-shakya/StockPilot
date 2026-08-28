@@ -410,25 +410,27 @@ export async function receiveShipment(input: { purchaseOrderId: number; actor?: 
     .from(purchaseOrderItems)
     .where(eq(purchaseOrderItems.purchaseOrderId, input.purchaseOrderId))
 
-  for (const item of items) {
-    await db
-      .update(products)
-      .set({ quantity: sql`${products.quantity} + ${item.quantity}` })
-      .where(eq(products.id, item.productId))
+  await db.transaction(async (tx) => {
+    for (const item of items) {
+      await tx
+        .update(products)
+        .set({ quantity: sql`${products.quantity} + ${item.quantity}` })
+        .where(eq(products.id, item.productId))
 
-    await db.insert(inventoryMovements).values({
-      productId: item.productId,
-      type: 'receiving',
-      quantityDelta: item.quantity,
-      note: `Received against ${po.poNumber}`,
-      actor: input.actor ?? 'human',
-    })
-  }
+      await tx.insert(inventoryMovements).values({
+        productId: item.productId,
+        type: 'receiving',
+        quantityDelta: item.quantity,
+        note: `Received against ${po.poNumber}`,
+        actor: input.actor ?? 'human',
+      })
+    }
 
-  await db
-    .update(purchaseOrders)
-    .set({ status: 'received', receivedAt: new Date() })
-    .where(eq(purchaseOrders.id, input.purchaseOrderId))
+    await tx
+      .update(purchaseOrders)
+      .set({ status: 'received', receivedAt: new Date() })
+      .where(eq(purchaseOrders.id, input.purchaseOrderId))
+  })
 
   const [full] = await getPurchaseOrders().then((all) => all.filter((p) => p.id === input.purchaseOrderId))
   return full
@@ -1040,29 +1042,34 @@ export async function createReplenishmentProposals(input: { category?: string; d
   const plan = await buildReplenishmentPlan(input)
   if (!plan.groupedBySupplier.length) return []
 
-  const proposals = []
-  for (const group of plan.groupedBySupplier) {
-    const action = await proposeAgentAction({
-      type: 'replenishment',
-      title: `Replenish ${group.items.length} product(s) from ${group.supplierName}`,
-      reasoning: group.items
-        .map(
-          (i) =>
-            `${i.name}: ${i.coverageDays ?? 0} day(s) of coverage left, ${i.riskLevel} risk — order ${i.suggestedQuantity} unit(s). ${i.recommendationReason ?? ''}`,
-        )
-        .join(' '),
-      impact: group.subtotalCents > 200000 ? 'high' : group.subtotalCents > 50000 ? 'medium' : 'low',
-      payload: {
-        supplierId: group.supplierId,
-        items: group.items.map((i) => ({ productId: i.productId, quantity: i.suggestedQuantity })),
-        notes: 'Smart Replenishment proposal',
-      },
-      relatedProductIds: group.items.map((i) => i.productId),
-      estimatedCostCents: group.subtotalCents,
-      proposedBy: 'agent',
-    })
-    proposals.push(action)
-  }
+  const proposals: Array<typeof agentActions.$inferSelect> = []
+  await db.transaction(async (tx) => {
+    for (const group of plan.groupedBySupplier) {
+      const [action] = await tx
+        .insert(agentActions)
+        .values({
+          type: 'replenishment',
+          title: `Replenish ${group.items.length} product(s) from ${group.supplierName}`,
+          reasoning: group.items
+            .map(
+              (i) =>
+                `${i.name}: ${i.coverageDays ?? 0} day(s) of coverage left, ${i.riskLevel} risk — order ${i.suggestedQuantity} unit(s). ${i.recommendationReason ?? ''}`,
+            )
+            .join(' '),
+          impact: group.subtotalCents > 200000 ? 'high' : group.subtotalCents > 50000 ? 'medium' : 'low',
+          payload: JSON.stringify({
+            supplierId: group.supplierId,
+            items: group.items.map((i) => ({ productId: i.productId, quantity: i.suggestedQuantity })),
+            notes: 'Smart Replenishment proposal',
+          }),
+          relatedProductIds: JSON.stringify(group.items.map((i) => i.productId)),
+          estimatedCostCents: group.subtotalCents,
+          proposedBy: 'agent',
+        })
+        .returning()
+      proposals.push(action)
+    }
+  })
   return proposals
 }
 

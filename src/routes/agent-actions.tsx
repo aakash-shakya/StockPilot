@@ -23,7 +23,7 @@ function AgentActionsPage() {
   async function decide(actionId: number, decision: 'approved' | 'rejected') {
     setBusyId(actionId)
     try {
-      await decideAgentActionFn({ data: { actionId, decision, decidedBy: 'human' } })
+      await decideAgentActionFn({ data: { actionId, decision } })
       await router.invalidate()
     } finally {
       setBusyId(null)

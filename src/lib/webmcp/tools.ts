@@ -1,40 +1,80 @@
+import { zodToJsonSchema } from '@alcyone-labs/zod-to-json-schema'
 import {
   approvePurchaseOrderFn,
+  approvePurchaseOrderSchema,
+  analyzeStockRiskSchema,
   analyzeStockRiskFn,
+  buildReplenishmentPlanSchema,
   buildReplenishmentPlanFn,
+  compareSuppliersSchema,
   compareSuppliersFn,
   createProductFromDraftFn,
+  createProductFromDraftSchema,
   createPurchaseOrderFn,
+  createPurchaseOrderSchema,
   createReplenishmentProposalsFn,
+  decideAgentActionSchema,
   decideAgentActionFn,
+  draftProductSchema,
   draftProductFn,
+  findDeadStockSchema,
   findDeadStockFn,
+  findLowStockSchema,
   findLowStockFn,
+  forecastDemandSchema,
+  generateReportSchema,
   generateReportFn,
+  generateSkuSchema,
   generateSkuFn,
+  getInventoryHealthCheckSchema,
   getInventoryHealthCheckFn,
+  getInventoryMovementsSchema,
   getInventoryMovementsFn,
   getInventorySummaryFn,
+  getProductDetailsSchema,
   getProductDetailsFn,
+  getPurchaseOrdersSchema,
   getPurchaseOrdersFn,
+  getSalesVelocitySchema,
   getSalesVelocityFn,
+  getSupplierIntelligenceSchema,
   getSupplierIntelligenceFn,
+  getSuppliersSchema,
   getSuppliersFn,
+  listAgentActionsSchema,
   listAgentActionsFn,
   logAgentToolCallFn,
+  proposeReplenishmentSchema,
+  queryInventorySchema,
   queryInventoryFn,
+  receiveShipmentSchema,
   receiveShipmentFn,
+  recommendReorderSchema,
   recommendReorderFn,
+  revertMovementSchema,
   revertMovementFn,
+  searchProductsSchema,
   searchProductsFn,
+  simulateInventorySchema,
   simulateInventoryFn,
+  updateStockSchema,
   updateStockFn,
+  whatShouldIWorryAboutSchema,
   whatShouldIWorryAboutFn,
 } from '../../server/inventory.functions.js'
 import { beginActivity, completeActivity, failActivity } from '../agent-activity-store.js'
 
+function toJsonSchema(schema: any): Record<string, unknown> {
+  const json = zodToJsonSchema(schema, { target: 'jsonSchema7', $refStrategy: 'none' }) as any
+  // Ensure strictness: disallow additional properties at top level if not set
+  if (json.type === 'object' && json.additionalProperties === undefined) json.additionalProperties = false
+  return json
+}
+
 interface ToolContent {
   content: Array<{ type: 'text'; text: string }>
+  structuredContent?: unknown
+  isError?: boolean
 }
 
 interface ToolDef {
@@ -42,12 +82,40 @@ interface ToolDef {
   title: string
   description: string
   inputSchema: Record<string, unknown>
-  readOnly: boolean
+  outputSchema?: Record<string, unknown>
+  annotations: { readOnlyHint: boolean; destructiveHint: boolean; idempotentHint: boolean; openWorldHint: boolean; title?: string }
+  readOnly: boolean // keep for backward compat derived from annotations.readOnlyHint
   run: (input: any) => Promise<{ summary: string; payload: unknown }>
 }
 
-function toolResult(payload: unknown): ToolContent {
-  return { content: [{ type: 'text', text: JSON.stringify(payload) }] }
+function toolResult(payload: unknown, opts?: { structuredContent?: unknown; isError?: boolean }): ToolContent {
+  const base: any = { content: [{ type: 'text', text: JSON.stringify(payload) }] }
+  if (opts?.structuredContent) base.structuredContent = opts.structuredContent
+  if (opts?.isError) base.isError = true
+  return base
+}
+
+function toolSuccess(payload: unknown, structuredContent?: unknown): ToolContent {
+  return toolResult(payload, structuredContent !== undefined ? { structuredContent } : undefined)
+}
+
+function toolError(mapped: { code: string; message: string; hint: string }): ToolContent {
+  return toolResult({ error: mapped.message, code: mapped.code, hint: mapped.hint }, { isError: true })
+}
+
+function mapError(error: unknown): { code: string; message: string; hint: string } {
+  if (error instanceof Error) {
+    const msg = error.message
+    if (msg.includes('Unknown product') || msg.includes('not found') || msg.includes('Unknown action'))
+      return { code: 'NOT_FOUND', message: msg, hint: 'Use search_products to discover valid ids' }
+    if (msg.includes('already')) return { code: 'CONFLICT', message: msg, hint: 'Resource already in that state' }
+    if (msg.includes('must be approved') || msg.includes('cannot be reverted'))
+      return { code: 'PRECONDITION_FAILED', message: msg, hint: 'Check status preconditions' }
+    if (msg.toLowerCase().includes('zod') || msg.includes('validation'))
+      return { code: 'INVALID_INPUT', message: msg, hint: 'Check required fields and types' }
+    return { code: 'INVALID_INPUT', message: msg, hint: 'Check input' }
+  }
+  return { code: 'INVALID_INPUT', message: 'Unknown error', hint: 'Retry with valid inputs' }
 }
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`
@@ -62,12 +130,13 @@ const READ_TOOLS: ToolDef[] = [
     title: 'Search products',
     description:
       'Search the product catalog by name or SKU, optionally filtered by category. Use this to find a specific product before inspecting or acting on it.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'Free-text match against product name or SKU' },
-        category: { type: 'string', description: 'Exact category name to filter by, e.g. "Electronics"' },
-      },
+    inputSchema: toJsonSchema(searchProductsSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Search products',
     },
     readOnly: true,
     run: async (input) => {
@@ -80,10 +149,18 @@ const READ_TOOLS: ToolDef[] = [
     title: 'Get inventory summary',
     description:
       'Get store-wide inventory health: total units and products, how many are critical/warning/watch/healthy, and average stock coverage in days.',
-    inputSchema: { type: 'object', properties: {} },
+    inputSchema: toJsonSchema(getInventoryHealthCheckSchema),
+    outputSchema: { type: 'object', properties: {}, additionalProperties: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get inventory summary',
+    },
     readOnly: true,
     run: async () => {
-      const summary = await getInventorySummaryFn()
+      const summary = await (getInventorySummaryFn as any)()
       return {
         summary: `${summary.totalProducts} products, ${summary.criticalCount} critical and ${summary.warningCount} at warning level`,
         payload: summary,
@@ -95,12 +172,14 @@ const READ_TOOLS: ToolDef[] = [
     title: 'Find low stock',
     description:
       'Find products that are at or below their reorder threshold, or projected to run out within a given number of days based on recent sales velocity. This is the starting point for any "what will run out" investigation.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        days: { type: 'number', description: 'Look-ahead window in days used to project stockouts. Defaults to 7.' },
-        category: { type: 'string', description: 'Restrict the search to one category' },
-      },
+    inputSchema: toJsonSchema(findLowStockSchema),
+    outputSchema: { type: 'object', properties: {}, additionalProperties: true },
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Find low stock',
     },
     readOnly: true,
     run: async (input) => {
@@ -113,10 +192,13 @@ const READ_TOOLS: ToolDef[] = [
     title: 'Get product details',
     description:
       'Get full detail for one product: current stock, supplier, lead time, risk level, and its last 25 inventory movements (sales, restocks, adjustments, receiving).',
-    inputSchema: {
-      type: 'object',
-      properties: { productId: { type: 'number', description: 'Product id' } },
-      required: ['productId'],
+    inputSchema: toJsonSchema(getProductDetailsSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get product details',
     },
     readOnly: true,
     run: async (input) => {
@@ -129,13 +211,13 @@ const READ_TOOLS: ToolDef[] = [
     name: 'get_sales_velocity',
     title: 'Get sales velocity',
     description: 'Get the average daily units sold for a product over a trailing window (default 14 days).',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        productId: { type: 'number' },
-        days: { type: 'number', description: 'Trailing window in days. Defaults to 14.' },
-      },
-      required: ['productId'],
+    inputSchema: toJsonSchema(getSalesVelocitySchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get sales velocity',
     },
     readOnly: true,
     run: async (input) => {
@@ -147,9 +229,13 @@ const READ_TOOLS: ToolDef[] = [
     name: 'get_purchase_orders',
     title: 'Get purchase orders',
     description: 'List purchase orders and their line items, optionally filtered by status (draft, approved, received).',
-    inputSchema: {
-      type: 'object',
-      properties: { status: { type: 'string', enum: ['draft', 'approved', 'received'] } },
+    inputSchema: toJsonSchema(getPurchaseOrdersSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get purchase orders',
     },
     readOnly: true,
     run: async (input) => {
@@ -162,13 +248,13 @@ const READ_TOOLS: ToolDef[] = [
     title: 'Get inventory movement history',
     description:
       'List raw inventory movements (sales, restocks, adjustments, transfers, receiving), optionally filtered by product or movement type. Use this as the audit trail behind any stock change, and to find a movement id to pass to revert_movement.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        productId: { type: 'number' },
-        type: { type: 'string', enum: ['sale', 'restock', 'adjustment', 'transfer_in', 'transfer_out', 'receiving'] },
-        limit: { type: 'number', description: 'Max rows to return. Defaults to 50.' },
-      },
+    inputSchema: toJsonSchema(getInventoryMovementsSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get inventory movement history',
     },
     readOnly: true,
     run: async (input) => {
@@ -180,10 +266,17 @@ const READ_TOOLS: ToolDef[] = [
     name: 'get_suppliers',
     title: 'Get suppliers',
     description: 'List all suppliers with their standard lead time and any known current shipment delay.',
-    inputSchema: { type: 'object', properties: {} },
+    inputSchema: toJsonSchema(getSuppliersSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get suppliers',
+    },
     readOnly: true,
     run: async () => {
-      const rows = await getSuppliersFn()
+      const rows = await (getSuppliersFn as any)()
       return { summary: `${rows.length} supplier(s)`, payload: rows }
     },
   },
@@ -199,13 +292,13 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Analyze stock risk',
     description:
       'Run a fuller risk analysis than find_low_stock: for each product, compares recent (7-day) vs. baseline (prior 23-day) sales velocity to flag whether depletion is accelerating, steady, or declining, and factors in supplier lead time and any known shipment delays. Use this to explain WHY a product is at risk, not just that it is.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        days: { type: 'number', description: 'Look-ahead window in days. Defaults to 7.' },
-        category: { type: 'string' },
-        productId: { type: 'number', description: 'Limit analysis to a single product' },
-      },
+    inputSchema: toJsonSchema(analyzeStockRiskSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Analyze stock risk',
     },
     readOnly: true,
     run: async (input) => {
@@ -219,12 +312,13 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Recommend reorder quantities',
     description:
       'Compute suggested reorder quantities and estimated cost for a set of products (or, if none given, every currently at-risk product) — enough stock to cover the target coverage window plus the supplier lead time and any known delay. This does NOT place an order; it only recommends one.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        productIds: { type: 'array', items: { type: 'number' }, description: 'Products to recommend for. Omit to use every at-risk product.' },
-        targetCoverageDaysOverride: { type: 'number', description: "Override each product's target coverage window in days." },
-      },
+    inputSchema: toJsonSchema(recommendReorderSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Recommend reorder quantities',
     },
     readOnly: true,
     run: async (input) => {
@@ -238,10 +332,17 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Get supplier intelligence',
     description:
       'Get computed reliability metrics per supplier: on-time delivery %, average delay days, active order count, average unit cost, and a 0-100 reliability score derived from real purchase order history.',
-    inputSchema: { type: 'object', properties: {} },
+    inputSchema: toJsonSchema(getSupplierIntelligenceSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get supplier intelligence',
+    },
     readOnly: true,
     run: async () => {
-      const rows = await getSupplierIntelligenceFn()
+      const rows = await (getSupplierIntelligenceFn as any)()
       return { summary: `${rows.length} supplier(s) rated`, payload: rows }
     },
   },
@@ -250,10 +351,13 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Compare suppliers for a product',
     description:
       'Compare every supplier option available for a product (cost, lead time, current delay, reliability score) and get a recommended supplier with reasoning. Use this before drafting an urgent purchase order.',
-    inputSchema: {
-      type: 'object',
-      properties: { productId: { type: 'number' } },
-      required: ['productId'],
+    inputSchema: toJsonSchema(compareSuppliersSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Compare suppliers for a product',
     },
     readOnly: true,
     run: async (input) => {
@@ -266,12 +370,13 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Find dead stock',
     description:
       'Find products with zero units sold over a window (default 60 days) that still have stock on hand, ranked by capital tied up. Use this to identify candidates for clearance or discontinuation.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        minDaysStale: { type: 'number', description: 'Zero-sales window in days. Defaults to 60.' },
-        category: { type: 'string' },
-      },
+    inputSchema: toJsonSchema(findDeadStockSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Find dead stock',
     },
     readOnly: true,
     run: async (input) => {
@@ -285,10 +390,17 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Run inventory health check',
     description:
       'Run a full sweep across low stock, stockouts, dead stock, abnormal sales changes, supplier delays, overdue purchase orders, high-value risk concentration, and single-supplier concentration risk. Returns every issue found, each with a severity and a recommended next action.',
-    inputSchema: { type: 'object', properties: {} },
+    inputSchema: toJsonSchema(getInventoryHealthCheckSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Run inventory health check',
+    },
     readOnly: true,
     run: async () => {
-      const result = await getInventoryHealthCheckFn()
+      const result = await (getInventoryHealthCheckFn as any)()
       return {
         summary: `${result.totalIssues} issue(s): ${result.highSeverityCount} high, ${result.mediumSeverityCount} medium, ${result.lowSeverityCount} low`,
         payload: result,
@@ -300,10 +412,17 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'What should I worry about today?',
     description:
       'Get a single prioritized operational briefing: pending agent approvals first, then the highest-severity inventory health issues. This is the recommended first call when starting a session.',
-    inputSchema: { type: 'object', properties: {} },
+    inputSchema: toJsonSchema(whatShouldIWorryAboutSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'What should I worry about today?',
+    },
     readOnly: true,
     run: async () => {
-      const result = await whatShouldIWorryAboutFn()
+      const result = await (whatShouldIWorryAboutFn as any)()
       return { summary: result.summary, payload: result }
     },
   },
@@ -312,13 +431,13 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Forecast demand and stockout date',
     description:
       "Project a product's stock level forward assuming current demand and lead time continue unchanged. This is a read-only forecast — use simulate_inventory instead to test a hypothetical change in demand or lead time.",
-    inputSchema: {
-      type: 'object',
-      properties: {
-        productId: { type: 'number' },
-        horizonDays: { type: 'number', description: 'Days to project forward. Defaults to 30.' },
-      },
-      required: ['productId'],
+    inputSchema: toJsonSchema(forecastDemandSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Forecast demand and stockout date',
     },
     readOnly: true,
     run: async (input) => {
@@ -336,15 +455,13 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Simulate a demand or lead-time change',
     description:
       'What-if simulation: given a hypothetical % change in demand and/or a change in supplier lead time (in days), project the resulting coverage, stockout date, and suggested reorder quantity against the current baseline. All assumptions used are returned alongside the result for transparency.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        productId: { type: 'number' },
-        demandChangePct: { type: 'number', description: 'e.g. 25 for +25% demand, -30 for -30% demand' },
-        leadTimeChangeDays: { type: 'number', description: 'e.g. 5 for 5 extra days of lead time' },
-        horizonDays: { type: 'number' },
-      },
-      required: ['productId'],
+    inputSchema: toJsonSchema(simulateInventorySchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Simulate a demand or lead-time change',
     },
     readOnly: true,
     run: async (input) => {
@@ -360,10 +477,13 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Query inventory in natural language',
     description:
       'Convert a natural-language inventory question (e.g. "what electronics are running out in the next 5 days") into structured filters and return matching products. Parsing is deterministic and rule-based; the parsed filters are always returned alongside the results so the interpretation is visible.',
-    inputSchema: {
-      type: 'object',
-      properties: { query: { type: 'string' } },
-      required: ['query'],
+    inputSchema: toJsonSchema(queryInventorySchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Query inventory in natural language',
     },
     readOnly: true,
     run: async (input) => {
@@ -376,13 +496,13 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Generate a report',
     description:
       'Generate a structured report from a natural-language request. Supports monthly inventory summaries, declining-sales reports, supplier-performance reports, and cash-tied-up-in-inventory reports — each with KPIs, a data table, findings, and recommendations. Report interpretation is deterministic and rule-based, returned as part of the result.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        query: { type: 'string', description: 'e.g. "monthly inventory report" or "which suppliers are underperforming"' },
-        category: { type: 'string' },
-      },
-      required: ['query'],
+    inputSchema: toJsonSchema(generateReportSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Generate a report',
     },
     readOnly: true,
     run: async (input) => {
@@ -395,12 +515,13 @@ const ANALYZE_TOOLS: ToolDef[] = [
     title: 'Build a Smart Replenishment plan',
     description:
       'Compose the full replenishment workflow read-only: finds every at-risk product, computes a suggested reorder quantity for each, compares suppliers per product, and groups everything into one draft purchase order per recommended supplier with cost subtotals. This does NOT create anything — call propose_replenishment to turn this into pending approvals, or create_purchase_order per group once a human approves.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        category: { type: 'string' },
-        days: { type: 'number', description: 'Look-ahead window in days. Defaults to 10.' },
-      },
+    inputSchema: toJsonSchema(buildReplenishmentPlanSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Build a Smart Replenishment plan',
     },
     readOnly: true,
     run: async (input) => {
@@ -423,15 +544,13 @@ const CREATE_TOOLS: ToolDef[] = [
     title: 'Generate a SKU',
     description:
       'Deterministically generate a unique CATEGORY-BRAND-MODEL[-VARIANT] SKU (not an LLM guess) from product attributes, checked against existing SKUs for collisions. Use this before generate_product if you only need the code itself.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        category: { type: 'string' },
-        brand: { type: 'string' },
-        model: { type: 'string' },
-        variant: { type: 'string' },
-      },
-      required: ['category', 'brand', 'model'],
+    inputSchema: toJsonSchema(generateSkuSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Generate a SKU',
     },
     readOnly: true,
     run: async (input) => {
@@ -444,22 +563,13 @@ const CREATE_TOOLS: ToolDef[] = [
     title: 'Draft a new product',
     description:
       'Draft a new product record — including a deterministically generated SKU — WITHOUT saving it. Returns the full draft for human review. Call create_product_from_draft with the reviewed values to actually add it to the catalog.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        category: { type: 'string' },
-        brand: { type: 'string' },
-        model: { type: 'string' },
-        variant: { type: 'string' },
-        supplierId: { type: 'number' },
-        costCents: { type: 'number' },
-        priceCents: { type: 'number' },
-        initialQuantity: { type: 'number' },
-        reorderThreshold: { type: 'number' },
-        targetCoverageDays: { type: 'number' },
-      },
-      required: ['name', 'category', 'brand', 'model', 'supplierId', 'costCents', 'priceCents'],
+    inputSchema: toJsonSchema(draftProductSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Draft a new product',
     },
     readOnly: true,
     run: async (input) => {
@@ -472,20 +582,13 @@ const CREATE_TOOLS: ToolDef[] = [
     title: 'Create product from a reviewed draft',
     description:
       'Add a new product to the live catalog from a draft produced by generate_product. This is CONSEQUENTIAL — it creates a real, permanent catalog entry. Only call this after a human has reviewed and approved the specific draft.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        sku: { type: 'string' },
-        name: { type: 'string' },
-        category: { type: 'string' },
-        supplierId: { type: 'number' },
-        costCents: { type: 'number' },
-        priceCents: { type: 'number' },
-        quantity: { type: 'number' },
-        reorderThreshold: { type: 'number' },
-        targetCoverageDays: { type: 'number' },
-      },
-      required: ['sku', 'name', 'category', 'supplierId', 'costCents', 'priceCents'],
+    inputSchema: toJsonSchema(createProductFromDraftSchema),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Create product from a reviewed draft',
     },
     readOnly: false,
     run: async (input) => {
@@ -498,21 +601,13 @@ const CREATE_TOOLS: ToolDef[] = [
     title: 'Create draft purchase order',
     description:
       'Create a DRAFT purchase order for a supplier with specific product quantities. All products must have that supplier as a valid option. This does not commit any spend or notify the supplier — it only creates a draft for a human to review. Call approve_purchase_order separately once the owner has explicitly approved it.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        supplierId: { type: 'number' },
-        items: {
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: { productId: { type: 'number' }, quantity: { type: 'number' } },
-            required: ['productId', 'quantity'],
-          },
-        },
-        notes: { type: 'string' },
-      },
-      required: ['supplierId', 'items'],
+    inputSchema: toJsonSchema(createPurchaseOrderSchema),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Create draft purchase order',
     },
     readOnly: false,
     run: async (input) => {
@@ -532,7 +627,14 @@ const MUTATE_TOOLS: ToolDef[] = [
     title: 'Approve purchase order',
     description:
       'Approve a draft purchase order, committing to place it with the supplier. This is a CONSEQUENTIAL action with real cost — only call this after the shop owner has explicitly approved the specific order in the conversation.',
-    inputSchema: { type: 'object', properties: { purchaseOrderId: { type: 'number' } }, required: ['purchaseOrderId'] },
+    inputSchema: toJsonSchema(approvePurchaseOrderSchema),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Approve purchase order',
+    },
     readOnly: false,
     run: async (input) => {
       const po = await approvePurchaseOrderFn({ data: input })
@@ -544,7 +646,14 @@ const MUTATE_TOOLS: ToolDef[] = [
     title: 'Receive shipment',
     description:
       'Mark an approved purchase order as received: adds every line item quantity to live stock and records a receiving movement for each. This is CONSEQUENTIAL — it changes real inventory counts. Only call this once the shop owner confirms the shipment physically arrived.',
-    inputSchema: { type: 'object', properties: { purchaseOrderId: { type: 'number' } }, required: ['purchaseOrderId'] },
+    inputSchema: toJsonSchema(receiveShipmentSchema),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Receive shipment',
+    },
     readOnly: false,
     run: async (input) => {
       const po = await receiveShipmentFn({ data: { ...input, actor: 'agent' } })
@@ -556,15 +665,13 @@ const MUTATE_TOOLS: ToolDef[] = [
     title: 'Update stock',
     description:
       "Directly adjust a product's stock count for manual corrections or transfers (not for recording ordinary sales, and not for receiving a purchase order — use receive_shipment for that). This is CONSEQUENTIAL — it changes the real, live stock count. Confirm the reason and quantity with the shop owner before calling it.",
-    inputSchema: {
-      type: 'object',
-      properties: {
-        productId: { type: 'number' },
-        quantityDelta: { type: 'number', description: 'Signed change in units, e.g. -3 or 10' },
-        type: { type: 'string', enum: ['adjustment', 'transfer_in', 'transfer_out', 'restock'] },
-        note: { type: 'string' },
-      },
-      required: ['productId', 'quantityDelta', 'type'],
+    inputSchema: toJsonSchema(updateStockSchema),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Update stock',
     },
     readOnly: false,
     run: async (input) => {
@@ -577,7 +684,14 @@ const MUTATE_TOOLS: ToolDef[] = [
     title: 'Revert an inventory movement',
     description:
       'Undo a previous manual adjustment or transfer by recording an equal-and-opposite movement (sales and receiving cannot be reverted this way). This is CONSEQUENTIAL — it changes real stock. Only call this after the shop owner confirms which specific movement to undo.',
-    inputSchema: { type: 'object', properties: { movementId: { type: 'number' } }, required: ['movementId'] },
+    inputSchema: toJsonSchema(revertMovementSchema),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Revert an inventory movement',
+    },
     readOnly: false,
     run: async (input) => {
       const result = await revertMovementFn({ data: { ...input, actor: 'agent' } })
@@ -596,9 +710,13 @@ const COLLABORATE_TOOLS: ToolDef[] = [
     title: 'Get pending agent actions',
     description:
       'List agent-proposed actions (replenishment plans, reorder point changes, purchase orders) awaiting a human approve/reject decision, each with its reasoning and estimated cost.',
-    inputSchema: {
-      type: 'object',
-      properties: { status: { type: 'string', enum: ['pending', 'approved', 'rejected', 'executed', 'failed'] } },
+    inputSchema: toJsonSchema(listAgentActionsSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get pending agent actions',
     },
     readOnly: true,
     run: async (input) => {
@@ -611,9 +729,13 @@ const COLLABORATE_TOOLS: ToolDef[] = [
     title: 'Propose a Smart Replenishment plan for approval',
     description:
       'Build the current Smart Replenishment plan and file one pending Agent Action per recommended supplier for human approval — it does NOT place any order itself. Use build_replenishment_plan first if you just want to see the numbers without filing anything.',
-    inputSchema: {
-      type: 'object',
-      properties: { category: { type: 'string' }, days: { type: 'number' } },
+    inputSchema: toJsonSchema(proposeReplenishmentSchema),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Propose a Smart Replenishment plan for approval',
     },
     readOnly: false,
     run: async (input) => {
@@ -626,10 +748,17 @@ const COLLABORATE_TOOLS: ToolDef[] = [
     title: 'Approve a pending agent action',
     description:
       'Approve a pending agent-proposed action, which immediately executes it (e.g. creates the purchase order it describes). This is CONSEQUENTIAL — only call this after the shop owner has explicitly approved this specific action.',
-    inputSchema: { type: 'object', properties: { actionId: { type: 'number' } }, required: ['actionId'] },
+    inputSchema: toJsonSchema(decideAgentActionSchema),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Approve a pending agent action',
+    },
     readOnly: false,
     run: async (input) => {
-      const result = await decideAgentActionFn({ data: { actionId: input.actionId, decision: 'approved', decidedBy: 'human' } })
+      const result = await decideAgentActionFn({ data: { actionId: input.actionId, decision: 'approved' } })
       return { summary: `Action ${input.actionId} ${result?.status}: ${result?.resultSummary ?? ''}`, payload: result }
     },
   },
@@ -637,10 +766,17 @@ const COLLABORATE_TOOLS: ToolDef[] = [
     name: 'reject_agent_action',
     title: 'Reject a pending agent action',
     description: 'Reject a pending agent-proposed action. Nothing is executed; the action is marked rejected for the audit trail.',
-    inputSchema: { type: 'object', properties: { actionId: { type: 'number' } }, required: ['actionId'] },
+    inputSchema: toJsonSchema(decideAgentActionSchema),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Reject a pending agent action',
+    },
     readOnly: false,
     run: async (input) => {
-      const result = await decideAgentActionFn({ data: { actionId: input.actionId, decision: 'rejected', decidedBy: 'human' } })
+      const result = await decideAgentActionFn({ data: { actionId: input.actionId, decision: 'rejected' } })
       return { summary: `Action ${input.actionId} rejected`, payload: result }
     },
   },
@@ -673,40 +809,62 @@ export async function registerInventoryWebMCPTools(): Promise<() => void> {
   if (registered) return () => {}
   registered = true
 
-  await import('@mcp-b/global')
   const controller = new AbortController()
 
-  const modelContext = document.modelContext as any
+  try {
+    await import('@mcp-b/global')
 
-  for (const tool of TOOLS) {
-    await modelContext.registerTool(
-      {
-        name: tool.name,
-        title: tool.title,
-        description: tool.description,
-        inputSchema: tool.inputSchema,
-        annotations: { readOnlyHint: tool.readOnly },
-        execute: async (input: any) => {
-          const activityId = beginActivity(tool.name, tool.title, !tool.readOnly)
-          try {
-            const { summary, payload } = await tool.run(input ?? {})
-            completeActivity(activityId, summary)
-            void logAgentToolCallFn({
-              data: { toolName: tool.name, input, summary, consequential: !tool.readOnly },
-            })
-            return toolResult(payload)
-          } catch (error) {
-            const message = error instanceof Error ? error.message : 'Tool call failed'
-            failActivity(activityId, message)
-            void logAgentToolCallFn({
-              data: { toolName: tool.name, input, summary: `Failed: ${message}`, consequential: !tool.readOnly },
-            })
-            return toolResult({ error: message })
-          }
+    const modelContext = (document as any).modelContext ?? (navigator as any)?.modelContext
+    if (!modelContext?.registerTool) {
+      console.warn('[WebMCP] modelContext not available after polyfill')
+      registered = false
+      return () => {}
+    }
+
+    for (const tool of TOOLS) {
+      await modelContext.registerTool(
+        {
+          name: tool.name,
+          title: tool.title,
+          description: tool.description,
+          inputSchema: tool.inputSchema,
+          outputSchema: (tool as any).outputSchema,
+          annotations: tool.annotations,
+          execute: async (input: any, opts?: { signal?: AbortSignal }) => {
+            // Respect abort signal if provided by host
+            if (opts?.signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+            const activityId = beginActivity(tool.name, tool.title, !tool.readOnly)
+            try {
+              const { summary, payload } = await tool.run(input ?? {})
+              completeActivity(activityId, summary)
+              void logAgentToolCallFn({
+                data: { toolName: tool.name, input, summary, consequential: !tool.readOnly },
+              }).catch(() => {})
+              if ((tool as any).outputSchema) return toolSuccess(payload, payload)
+              return toolSuccess(payload)
+            } catch (error) {
+              const mapped = mapError(error)
+              failActivity(activityId, mapped.message)
+              void logAgentToolCallFn({
+                data: {
+                  toolName: tool.name,
+                  input,
+                  summary: `Failed: ${mapped.code}: ${mapped.message}`,
+                  consequential: !tool.readOnly,
+                },
+              }).catch(() => {})
+              return toolError(mapped)
+            }
+          },
         },
-      },
-      { signal: controller.signal },
-    )
+        { signal: controller.signal },
+      )
+    }
+  } catch (err) {
+    console.warn('[WebMCP] registration failed', err)
+    controller.abort()
+    registered = false
+    return () => {}
   }
 
   return () => {
