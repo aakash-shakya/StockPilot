@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
-import { HeadContent, Outlet, Scripts, createRootRoute, useRouter } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRoute, redirect, useRouter, useRouterState } from '@tanstack/react-router'
 
 import { Nav } from '../components/Nav.js'
 import { AgentActivityPanel } from '../components/AgentActivityPanel.js'
 import { WebMcpProvider } from '../lib/webmcp/WebMcpProvider.js'
 import { agentActivityStore } from '../lib/agent-activity-store.js'
+import { getCurrentUserFn } from '../server/auth.functions.js'
 import '../styles.css'
 
 export const Route = createRootRoute({
@@ -22,12 +23,31 @@ export const Route = createRootRoute({
       },
     ],
   }),
+  beforeLoad: async ({ location }) => {
+    const publicPaths = ['/login', '/register']
+    const isPublic = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'))
+    const user = await getCurrentUserFn()
+    if (!user && !isPublic) {
+      throw redirect({ to: '/login' })
+    }
+    if (user && isPublic) {
+      throw redirect({ to: '/' })
+    }
+    return { user }
+  },
+  loader: async () => {
+    const user = await getCurrentUserFn()
+    return { user }
+  },
   shellComponent: RootDocument,
   component: RootComponent,
 })
 
 function RootComponent() {
   const router = useRouter()
+  const { user } = Route.useLoaderData()
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const isAuthPage = pathname === '/login' || pathname === '/register'
 
   useEffect(() => {
     const sub = agentActivityStore.subscribe(() => {
@@ -36,9 +56,17 @@ function RootComponent() {
     return () => sub.unsubscribe()
   }, [router])
 
+  if (isAuthPage) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Outlet />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
-      <Nav />
+      <Nav user={user} />
       <Outlet />
       <WebMcpProvider />
       <AgentActivityPanel />
