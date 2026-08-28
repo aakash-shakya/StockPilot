@@ -170,7 +170,7 @@ function ProductDetail() {
 
       {/* Action cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-blue-500">
+        <div className="panel panel-shadow overflow-hidden">
           <div className="card-header-blue px-5 py-3">
             <h2 className="text-sm font-semibold text-slate-900">Reorder recommendation</h2>
           </div>
@@ -206,7 +206,7 @@ function ProductDetail() {
           </div>
         </div>
 
-        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-emerald-500">
+        <div className="panel panel-shadow overflow-hidden">
           <div className="card-header-emerald px-5 py-3">
             <h2 className="text-sm font-semibold text-slate-900">Manual stock adjustment</h2>
           </div>
@@ -250,7 +250,7 @@ function ProductDetail() {
       </div>
 
       {/* Compare suppliers */}
-      <div className="panel panel-shadow overflow-hidden mb-8 border-t-4 border-t-violet-500">
+      <div className="panel panel-shadow overflow-hidden mb-8">
         <div className="card-header-violet px-5 py-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold text-slate-900">Compare suppliers</h2>
           {!comparison && (
@@ -305,7 +305,7 @@ function ProductDetail() {
       </div>
 
       {/* Recent movements */}
-      <div className="panel panel-shadow overflow-hidden border-t-4 border-t-slate-700">
+      <div className="panel panel-shadow overflow-hidden">
         <div className="card-header-slate px-5 py-3">
           <h2 className="text-sm font-semibold text-slate-900">Recent movements</h2>
         </div>

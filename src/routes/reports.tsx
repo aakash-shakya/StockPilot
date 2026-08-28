@@ -63,7 +63,7 @@ function ReportsPage() {
         <p className="text-sm text-gray-500">Describe what you want in plain English. Deterministic parsing.</p>
       </div>
 
-      <div className="panel panel-shadow overflow-hidden border-t-4 border-t-blue-500 mb-8">
+      <div className="panel panel-shadow overflow-hidden mb-8">
         <div className="card-header-blue px-5 py-3">
           <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Generate a report</p>
         </div>
@@ -171,7 +171,7 @@ function ReportsPage() {
             </div>
           )}
 
-          <div className="panel panel-shadow overflow-hidden border-t-4 border-t-slate-600">
+          <div className="panel panel-shadow overflow-hidden">
             <div className="overflow-x-auto scrollbar-none">
               <table className="w-full text-sm">
               <thead>

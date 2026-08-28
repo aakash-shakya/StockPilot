@@ -75,7 +75,7 @@ function ProductsList() {
         </select>
       </div>
 
-      <div className={`panel panel-shadow overflow-hidden border-t-4 border-t-blue-500 transition-opacity duration-200 ${loading ? 'opacity-60' : ''}`}>
+      <div className={`panel panel-shadow overflow-hidden transition-opacity duration-200 ${loading ? 'opacity-60' : ''}`}>
         <div className="px-5 py-3.5 card-header-slate flex items-center justify-between">
           <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Catalog</p>
           <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-full font-medium shadow-sm">{products.length} items</span>

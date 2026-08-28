@@ -41,7 +41,7 @@ function SuppliersPage() {
         <p className="text-sm text-slate-500">Reliability metrics from real purchase order history — never estimated.</p>
       </div>
 
-      <div className="panel panel-shadow overflow-hidden mb-8 border-t-4 border-t-blue-500">
+      <div className="panel panel-shadow overflow-hidden mb-8">
         <div className="card-header-slate px-5 py-3 flex items-center justify-between">
           <h2 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Supplier intelligence</h2>
           <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-full font-medium shadow-sm">{intelligence.length} suppliers</span>
@@ -86,7 +86,7 @@ function SuppliersPage() {
         </div>
       </div>
 
-      <div className="panel panel-shadow overflow-hidden border-t-4 border-t-violet-500">
+      <div className="panel panel-shadow overflow-hidden">
         <div className="card-header-violet px-5 py-4">
           <h2 className="text-sm font-semibold text-slate-900">Compare suppliers</h2>
           <p className="text-xs text-slate-500">Side-by-side cost, lead time, and reliability for a specific product.</p>
