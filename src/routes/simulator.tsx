@@ -49,38 +49,51 @@ function SimulatorPage() {
           <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Configure simulation</p>
         </div>
         <div className="p-5">
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
-          <select
-            value={productId}
-            onChange={(e) => setProductId(e.target.value ? Number(e.target.value) : '')}
-            className="sm:col-span-2 input"
-          >
-            <option value="">Select a product…</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.sku})
-              </option>
-            ))}
-          </select>
-          <div>
-            <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block mb-1">Demand change %</label>
-            <input
-              type="number"
-              value={demandChangePct}
-              onChange={(e) => setDemandChangePct(e.target.value)}
-              className="input"
-            />
-          </div>
-          <div>
-            <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block mb-1">Lead time change (days)</label>
-            <input
-              type="number"
-              value={leadTimeChangeDays}
-              onChange={(e) => setLeadTimeChangeDays(e.target.value)}
-              className="input"
-            />
-          </div>
-        </div>
+    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+     <select
+      value={productId}
+      onChange={(e) => setProductId(e.target.value ? Number(e.target.value) : '')}
+      className="sm:col-span-2 input"
+     >
+      <option value="">Select a product…</option>
+      {products.map((p) => (
+       <option key={p.id} value={p.id}>
+        {p.name} ({p.sku})
+       </option>
+      ))}
+     </select>
+     <div>
+      <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block mb-1">Demand change %</label>
+      <input
+       type="number"
+       value={demandChangePct}
+       onChange={(e) => setDemandChangePct(e.target.value)}
+       className="input"
+      />
+     </div>
+     <div>
+      <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block mb-1">Lead time change (days)</label>
+      <input
+       type="number"
+       value={leadTimeChangeDays}
+       onChange={(e) => setLeadTimeChangeDays(e.target.value)}
+       className="input"
+      />
+     </div>
+    </div>
+    <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
+     <div>
+      <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block mb-1">Horizon (days)</label>
+      <input
+       type="number"
+       value={horizonDays}
+       onChange={(e) => setHorizonDays(e.target.value)}
+       min={1}
+       max={90}
+       className="input"
+      />
+     </div>
+    </div>
         <button
           onClick={() => void runSimulation()}
           disabled={loading || !productId}

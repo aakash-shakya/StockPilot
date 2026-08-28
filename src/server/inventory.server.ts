@@ -1,8 +1,9 @@
-import { and, desc, eq, gte, ilike, inArray, lt, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, ilike, inArray, lt, not, or, sql } from 'drizzle-orm'
 import { db } from '../../db/index.js'
 import {
   agentActions,
   agentToolCalls,
+  businessPolicies,
   inventoryMovements,
   products,
   productSuppliers,
@@ -453,20 +454,23 @@ export async function updateStock(input: {
     throw new Error(`Cannot reduce ${product.name} below zero (current stock: ${product.quantity})`)
   }
 
-  await db.update(products).set({ quantity: nextQuantity }).where(eq(products.id, input.productId))
+  let movement: typeof inventoryMovements.$inferSelect
+  await db.transaction(async (tx) => {
+    await tx.update(products).set({ quantity: nextQuantity }).where(eq(products.id, input.productId))
+    const [m] = await tx
+      .insert(inventoryMovements)
+      .values({
+        productId: input.productId,
+        type: input.type,
+        quantityDelta: input.quantityDelta,
+        note: input.note,
+        actor: input.actor ?? 'human',
+      })
+      .returning()
+    movement = m!
+  })
 
-  const [movement] = await db
-    .insert(inventoryMovements)
-    .values({
-      productId: input.productId,
-      type: input.type,
-      quantityDelta: input.quantityDelta,
-      note: input.note,
-      actor: input.actor ?? 'human',
-    })
-    .returning()
-
-  return { product: { ...product, quantity: nextQuantity }, movement }
+  return { product: { ...product, quantity: nextQuantity }, movement: movement! }
 }
 
 // ---------------------------------------------------------------------------
@@ -488,7 +492,18 @@ export async function logAgentToolCall(input: {
 }
 
 export async function getRecentAgentActivity(limit = 30) {
-  return db.select().from(agentToolCalls).orderBy(desc(agentToolCalls.createdAt)).limit(limit)
+  const rows = await db.select().from(agentToolCalls).orderBy(desc(agentToolCalls.createdAt)).limit(limit)
+  return rows.map((row) => {
+    const readOnlyTools = ['search_', 'get_', 'find_', 'analyze_', 'build_', 'what_', 'investigate_', 'query_', 'generate_', 'forecast_', 'simulate_', 'recommend_', 'compare_']
+    const isReadOnly = readOnlyTools.some((prefix) => row.toolName.startsWith(prefix))
+    const inputLen = row.input ? row.input.length : 0
+    const tokenEstimate = Math.ceil(inputLen / 4) + 50 // rough: ~4 chars per token + tool overhead
+    return {
+      ...row,
+      actor: isReadOnly ? 'agent' : 'agent',
+      tokenEstimate,
+    }
+  })
 }
 
 export async function getSuppliers() {
@@ -643,11 +658,13 @@ export interface HealthIssue {
 const SEVERITY_RANK: Record<HealthIssue['severity'], number> = { high: 0, medium: 1, low: 2 }
 
 export async function getInventoryHealthCheck() {
-  const risk = await riskForProducts()
-  const supplierRows = await getSuppliers()
-  const supplierIntel = await getSupplierIntelligence()
-  const poRows = await getPurchaseOrders()
-  const deadStock = await findDeadStock({})
+  const [risk, supplierRows, supplierIntel, poRows, deadStock] = await Promise.all([
+    riskForProducts(),
+    getSuppliers(),
+    getSupplierIntelligence(),
+    getPurchaseOrders(),
+    findDeadStock({}),
+  ])
 
   const issues: HealthIssue[] = []
 
@@ -1510,20 +1527,23 @@ export async function revertMovement(input: { movementId: number; actor?: Actor 
     throw new Error(`Reverting this movement would take ${product.name} below zero stock`)
   }
 
-  await db.update(products).set({ quantity: nextQuantity }).where(eq(products.id, product.id))
+  let reversal: typeof inventoryMovements.$inferSelect
+  await db.transaction(async (tx) => {
+    await tx.update(products).set({ quantity: nextQuantity }).where(eq(products.id, product.id))
+    const [r] = await tx
+      .insert(inventoryMovements)
+      .values({
+        productId: product.id,
+        type: movement.type,
+        quantityDelta: reversedDelta,
+        note: `Reverted movement #${movement.id}${movement.note ? ` (${movement.note})` : ''}`,
+        actor: input.actor ?? 'human',
+      })
+      .returning()
+    reversal = r!
+  })
 
-  const [reversal] = await db
-    .insert(inventoryMovements)
-    .values({
-      productId: product.id,
-      type: movement.type,
-      quantityDelta: reversedDelta,
-      note: `Reverted movement #${movement.id}${movement.note ? ` (${movement.note})` : ''}`,
-      actor: input.actor ?? 'human',
-    })
-    .returning()
-
-  return { product: { ...product, quantity: nextQuantity }, reversal }
+  return { product: { ...product, quantity: nextQuantity }, reversal: reversal! }
 }
 
 // ---------------------------------------------------------------------------
@@ -1576,5 +1596,342 @@ export async function getMissionStatus() {
     completedCount,
     totalCount: tasks.length,
     percentComplete: Math.round((completedCount / tasks.length) * 100),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Business Policies — configurable thresholds and rules
+// ---------------------------------------------------------------------------
+
+const DEFAULT_POLICIES: Array<{ key: string; value: string; description: string }> = [
+  { key: 'maxPoWithoutApproval', value: '100000', description: 'Max PO value in cents without requiring approval' },
+  { key: 'minMarginPercent', value: '18', description: 'Minimum acceptable margin percent' },
+  { key: 'emergencyStockDays', value: '7', description: 'Days of emergency stock to maintain' },
+  { key: 'targetCoverageDays', value: '30', description: 'Target inventory coverage in days' },
+  { key: 'safetyStockPercent', value: '15', description: 'Safety stock as percent of average demand' },
+  { key: 'autoApproveThreshold', value: '50000', description: 'Auto-approve POs below this value in cents' },
+  { key: 'maxSupplierConcentration', value: '40', description: 'Max percent of value from a single supplier' },
+  { key: 'deadStockDays', value: '60', description: 'Days with no sales to classify as dead stock' },
+]
+
+export async function getBusinessPolicies() {
+  const rows = await db.select().from(businessPolicies)
+  // Merge with defaults — defaults fill in any missing keys
+  const existing = new Map(rows.map((r) => [r.key, r]))
+  return DEFAULT_POLICIES.map((d) => ({
+    key: d.key,
+    value: existing.get(d.key)?.value ?? d.value,
+    description: d.description,
+    updatedAt: existing.get(d.key)?.updatedAt ?? null,
+  }))
+}
+
+export async function updateBusinessPolicy(input: { key: string; value: string }) {
+  const existing = await db.select().from(businessPolicies).where(eq(businessPolicies.key, input.key))
+  if (existing.length) {
+    await db
+      .update(businessPolicies)
+      .set({ value: input.value, updatedAt: new Date() })
+      .where(eq(businessPolicies.key, input.key))
+  } else {
+    await db.insert(businessPolicies).values({ key: input.key, value: input.value })
+  }
+  return { key: input.key, value: input.value }
+}
+
+export async function getPolicyValue(key: string): Promise<string | null> {
+  const [row] = await db.select().from(businessPolicies).where(eq(businessPolicies.key, key))
+  if (row) return row.value
+  const def = DEFAULT_POLICIES.find((d) => d.key === key)
+  return def?.value ?? null
+}
+
+// ---------------------------------------------------------------------------
+// Morning Briefing — one-call comprehensive status report
+// ---------------------------------------------------------------------------
+
+export async function getMorningBriefing() {
+  const [health, plan, pending, deadStock, suppliers] = await Promise.all([
+    getInventoryHealthCheck(),
+    buildReplenishmentPlan(),
+    listAgentActions({ status: 'pending' }),
+    findDeadStock(),
+    getSupplierIntelligence(),
+  ])
+
+  const urgentIssues = health.issues.filter((i) => i.severity === 'high')
+  const watchIssues = health.issues.filter((i) => i.severity === 'medium')
+  const deadStockCapital = deadStock.reduce((s, d) => s + d.capitalTiedUpCents, 0)
+  const supplierAlerts = suppliers.filter((s) => s.onTimePct !== null && s.onTimePct < 70)
+
+  const topAction = plan.items[0] ?? null
+  const healthScore = Math.max(
+    0,
+    100 - health.highSeverityCount * 15 - health.mediumSeverityCount * 5 - health.lowSeverityCount * 1,
+  )
+
+  return {
+    generatedAt: new Date().toISOString(),
+    healthScore,
+    summary:
+      health.totalIssues === 0
+        ? 'All clear — inventory is healthy.'
+        : `${health.highSeverityCount} critical, ${health.mediumSeverityCount} warning, ${health.lowSeverityCount} info issue(s).`,
+    urgentIssues,
+    watchIssues,
+    reorderBudgetCents: plan.totalEstimatedCostCents,
+    reorderItems: plan.items.length,
+    pendingApprovals: pending.length,
+    deadStockCapitalCents: deadStockCapital,
+    deadStockCount: deadStock.length,
+    supplierAlerts,
+    topAction: topAction
+      ? {
+          name: topAction.name,
+          sku: topAction.sku,
+          suggestedQuantity: topAction.suggestedQuantity,
+          estimatedCostCents: topAction.estimatedCostCents,
+          supplierName: topAction.recommendedSupplierName,
+          riskLevel: topAction.riskLevel,
+          coverageDays: topAction.coverageDays,
+        }
+      : null,
+    budgetSummary: plan.totalEstimatedCostCents > 0
+      ? {
+          totalCents: plan.totalEstimatedCostCents,
+          breakdown: plan.groupedBySupplier.map((g) => ({
+            supplierName: g.supplierName,
+            itemCount: g.items.length,
+            subtotalCents: g.subtotalCents,
+          })),
+        }
+      : null,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Emergency Impact — supplier failure analysis
+// ---------------------------------------------------------------------------
+
+export async function getEmergencyImpact(input: { supplierId: number; delayDays?: number }) {
+  const delayDays = input.delayDays ?? 14
+
+  const [supplierRow, supplierProducts, intelligence] = await Promise.all([
+    db.select().from(suppliers).where(eq(suppliers.id, input.supplierId)).then((r) => r[0]),
+    db
+      .select({
+        productId: products.id,
+        sku: products.sku,
+        name: products.name,
+        quantity: products.quantity,
+        costCents: products.costCents,
+        priceCents: products.priceCents,
+        leadTimeDays: suppliers.leadTimeDays,
+        delayDays: suppliers.delayDays,
+      })
+      .from(products)
+      .innerJoin(suppliers, eq(products.supplierId, suppliers.id))
+      .where(eq(products.supplierId, input.supplierId)),
+    getSupplierIntelligence(),
+  ])
+
+  if (!supplierRow) throw new Error('Unknown supplier')
+
+  const intel = intelligence.find((s) => s.supplierId === input.supplierId)
+  const { recentUnits } = await velocityWindows()
+
+  const impacts = []
+  for (const product of supplierProducts) {
+    const recentDaily = round1((recentUnits.get(product.productId) ?? 0) / 7)
+    const velocity = recentDaily > 0 ? recentDaily : 1
+    const coverageDays = round1(product.quantity / velocity)
+    const effectiveLeadTime = product.leadTimeDays + product.delayDays + delayDays
+    const willStockOut = coverageDays < effectiveLeadTime
+
+    // Find alternate suppliers
+    const alternates = await db
+      .select({
+        supplierId: productSuppliers.supplierId,
+        name: suppliers.name,
+        unitCostCents: productSuppliers.unitCostCents,
+        leadTimeDays: productSuppliers.leadTimeDays,
+      })
+      .from(productSuppliers)
+      .innerJoin(suppliers, eq(productSuppliers.supplierId, suppliers.id))
+      .where(
+        and(
+          eq(productSuppliers.productId, product.productId),
+          not(eq(productSuppliers.supplierId, input.supplierId)),
+        ),
+      )
+
+    const daysUntilStockout = coverageDays
+    const revenueAtRiskCents = willStockOut ? Math.ceil(daysUntilStockout * velocity) * product.priceCents : 0
+
+    impacts.push({
+      productId: product.productId,
+      sku: product.sku,
+      name: product.name,
+      currentStock: product.quantity,
+      dailyVelocity: velocity,
+      coverageDays,
+      willStockOut,
+      daysUntilStockout: willStockOut ? Math.round(daysUntilStockout) : null,
+      effectiveLeadTimeDays: effectiveLeadTime,
+      alternateSuppliers: alternates,
+      revenueAtRiskCents,
+    })
+  }
+
+  const stockoutRisk = impacts.filter((i) => i.willStockOut).length
+  const totalRevenueAtRiskCents = impacts.reduce((s, i) => s + i.revenueAtRiskCents, 0)
+
+  return {
+    generatedAt: new Date().toISOString(),
+    supplier: {
+      id: supplierRow.id,
+      name: supplierRow.name,
+      leadTimeDays: supplierRow.leadTimeDays,
+      currentDelayDays: supplierRow.delayDays,
+      reliabilityScore: intel?.reliabilityScore ?? null,
+      onTimePct: intel?.onTimePct ?? null,
+    },
+    delayDays,
+    affectedProducts: impacts.length,
+    stockoutRisk,
+    totalRevenueAtRiskCents,
+    totalRevenueAtRisk: `$${(totalRevenueAtRiskCents / 100).toFixed(2)}`,
+    products: impacts,
+    recommendation:
+      stockoutRisk > 0
+        ? `URGENT: ${stockoutRisk} product(s) will stock out within the delay window. Consider alternate suppliers immediately.`
+        : `No imminent stockouts, but ${impacts.length} product(s) have reduced coverage. Monitor closely.`,
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Inventory Detective — discrepancy & anomaly detection
+// ---------------------------------------------------------------------------
+
+export async function investigateInventory() {
+  const [movements, productRows, poRows, poItems] = await Promise.all([
+    db.select().from(inventoryMovements).orderBy(desc(inventoryMovements.createdAt)).limit(200),
+    db.select().from(products),
+    db.select().from(purchaseOrders),
+    db.select().from(purchaseOrderItems),
+  ])
+
+  const issues: Array<{
+    type: string
+    severity: 'low' | 'medium' | 'high'
+    productId?: number
+    productName?: string
+    description: string
+    recommendation: string
+  }> = []
+
+  // Negative stock check
+  for (const p of productRows) {
+    if (p.quantity < 0) {
+      issues.push({
+        type: 'negative_stock',
+        severity: 'high',
+        productId: p.id,
+        productName: p.name,
+        description: `${p.name} (${p.sku}) has negative stock: ${p.quantity} units.`,
+        recommendation: 'Investigate immediately — negative stock indicates a data integrity issue.',
+      })
+    }
+  }
+
+  // Suspicious adjustments (large deltas without notes)
+  const adjustments = movements.filter((m) => m.type === 'adjustment' && Math.abs(m.quantityDelta) > 10)
+  for (const adj of adjustments) {
+    const product = productRows.find((p) => p.id === adj.productId)
+    issues.push({
+      type: 'suspicious_adjustment',
+      severity: adj.note ? 'low' : 'medium',
+      productId: adj.productId,
+      productName: product?.name,
+      description: `Large adjustment of ${adj.quantityDelta > 0 ? '+' : ''}${adj.quantityDelta} units on ${product?.name ?? `product ${adj.productId}`}${adj.note ? '' : ' (no note explaining reason)'}.`,
+      recommendation: adj.note
+        ? `Verify adjustment reason: "${adj.note}"`
+        : 'Add a note explaining this adjustment for the audit trail.',
+    })
+  }
+
+  // Duplicate SKU check (shouldn't happen but worth detecting)
+  const skuCounts = new Map<string, number>()
+  for (const p of productRows) {
+    skuCounts.set(p.sku, (skuCounts.get(p.sku) ?? 0) + 1)
+  }
+  for (const [sku, count] of skuCounts) {
+    if (count > 1) {
+      const product = productRows.find((p) => p.sku === sku)
+      issues.push({
+        type: 'duplicate_sku',
+        severity: 'high',
+        productId: product?.id,
+        productName: product?.name,
+        description: `SKU "${sku}" appears ${count} times in the catalog.`,
+        recommendation: 'Merge or rename duplicate SKUs to prevent order confusion.',
+      })
+    }
+  }
+
+  // PO items with mismatched quantities (received vs ordered)
+  const receivedMovements = movements.filter((m) => m.type === 'receiving')
+  for (const po of poRows) {
+    if (po.status !== 'received') continue
+    const items = poItems.filter((i) => i.purchaseOrderId === po.id)
+    for (const item of items) {
+      const received = receivedMovements
+        .filter((m) => m.productId === item.productId && m.note?.includes(po.poNumber))
+        .reduce((sum, m) => sum + m.quantityDelta, 0)
+      if (received !== item.quantity) {
+        const product = productRows.find((p) => p.id === item.productId)
+        issues.push({
+          type: 'receiving_discrepancy',
+          severity: 'medium',
+          productId: item.productId,
+          productName: product?.name,
+          description: `${po.poNumber}: ordered ${item.quantity} of ${product?.name ?? `product ${item.productId}`}, received ${received}.`,
+          recommendation: 'Investigate the discrepancy — may indicate shipping error or miscount.',
+        })
+      }
+    }
+  }
+
+  // Stale products (no movement in 30+ days but still in stock)
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000)
+  const recentProductIds = new Set(
+    movements.filter((m) => m.createdAt && m.createdAt > thirtyDaysAgo).map((m) => m.productId),
+  )
+  for (const p of productRows) {
+    if (p.quantity > 0 && !recentProductIds.has(p.id)) {
+      issues.push({
+        type: 'stale_product',
+        severity: 'low',
+        productId: p.id,
+        productName: p.name,
+        description: `${p.name} (${p.sku}) has ${p.quantity} units but no movement in 30+ days.`,
+        recommendation: 'Consider running a promotion or reevaluating demand for this SKU.',
+      })
+    }
+  }
+
+  const bySeverity = {
+    high: issues.filter((i) => i.severity === 'high').length,
+    medium: issues.filter((i) => i.severity === 'medium').length,
+    low: issues.filter((i) => i.severity === 'low').length,
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    totalIssues: issues.length,
+    highSeverityCount: bySeverity.high,
+    mediumSeverityCount: bySeverity.medium,
+    lowSeverityCount: bySeverity.low,
+    issues,
   }
 }

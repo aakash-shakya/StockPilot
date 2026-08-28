@@ -69,6 +69,7 @@ export const generateReportSchema = z.object({
 export const buildReplenishmentPlanSchema = z.object({
   category: z.string().min(1).optional().describe('Category filter'),
   days: z.number().int().min(1).max(90).optional().describe('Look-ahead days, default 10'),
+  budgetCents: z.number().int().min(0).optional().describe('Max budget in cents — items prioritized by urgency and fitted within cap'),
 })
 export const createReplenishmentProposalsSchema = buildReplenishmentPlanSchema
 export const generateSkuSchema = z.object({
@@ -335,3 +336,43 @@ export const revertMovementFn = createServerFn({ method: 'POST' })
 // ---------------------------------------------------------------------------
 
 export const getMissionStatusFn = createServerFn({ method: 'GET' }).handler(() => inventory.getMissionStatus())
+
+// ---------------------------------------------------------------------------
+// Morning Briefing
+// ---------------------------------------------------------------------------
+
+export const getMorningBriefingFn = createServerFn({ method: 'GET' }).handler(() => inventory.getMorningBriefing())
+
+// ---------------------------------------------------------------------------
+// Emergency Impact
+// ---------------------------------------------------------------------------
+
+export const getEmergencyImpactSchema = z.object({
+  supplierId: z.number().int().positive().describe('Supplier id to analyze'),
+  delayDays: z.number().int().min(1).max(90).optional().describe('Additional delay in days, default 14'),
+})
+
+export const getEmergencyImpactFn = createServerFn({ method: 'GET' })
+  .inputValidator(getEmergencyImpactSchema)
+  .handler(({ data }) => inventory.getEmergencyImpact(data))
+
+// ---------------------------------------------------------------------------
+// Inventory Detective
+// ---------------------------------------------------------------------------
+
+export const investigateInventoryFn = createServerFn({ method: 'GET' }).handler(() => inventory.investigateInventory())
+
+// ---------------------------------------------------------------------------
+// Business Policies
+// ---------------------------------------------------------------------------
+
+export const getBusinessPoliciesFn = createServerFn({ method: 'GET' }).handler(() => inventory.getBusinessPolicies())
+
+export const updateBusinessPolicySchema = z.object({
+  key: z.string().min(1).describe('Policy key'),
+  value: z.string().min(1).describe('New value (JSON-encoded)'),
+})
+
+export const updateBusinessPolicyFn = createServerFn({ method: 'POST' })
+  .inputValidator(updateBusinessPolicySchema)
+  .handler(({ data }) => inventory.updateBusinessPolicy(data))
