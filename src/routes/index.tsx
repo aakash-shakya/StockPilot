@@ -60,10 +60,10 @@ function Dashboard() {
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Worry about - elevated with header */}
-        <div className="lg:col-span-2 panel panel-shadow overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-red-50/50 to-transparent border-b border-slate-100">
+        <div className="lg:col-span-2 panel panel-shadow overflow-hidden border-l-4 border-l-red-500/90">
+          <div className="flex items-center justify-between px-5 py-4 card-header-red">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center shadow-sm">
+              <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center shadow-sm ring-1 ring-red-600/20">
                 <HeartPulse className="w-4 h-4 text-white" />
               </div>
               <div>
@@ -71,7 +71,7 @@ function Dashboard() {
                 <p className="text-xs text-slate-500">{worryAbout.summary}</p>
               </div>
             </div>
-            <Link to="/health" className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-slate-200 hover:border-blue-200">
+            <Link to="/health" className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-blue-200 shadow-sm">
               Full check <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -98,49 +98,51 @@ function Dashboard() {
 
         {/* Agent Actions + Mission */}
         <div className="space-y-4">
-          <div className="panel panel-shadow overflow-hidden">
-            <div className="px-5 py-3 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+          <div className="panel panel-shadow overflow-hidden border-l-4 border-l-blue-500">
+            <div className="px-5 py-3.5 card-header-blue flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm ring-1 ring-blue-700/15">
                   <ShieldCheck className="w-4 h-4 text-white" />
                 </div>
                 <h2 className="text-sm font-semibold text-slate-900">Agent Actions</h2>
               </div>
-              <Link to="/agent-actions" className="text-xs font-medium text-blue-600 hover:text-blue-700">
+              <Link to="/agent-actions" className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-blue-200 hover:border-blue-300 shadow-sm">
                 Review →
               </Link>
             </div>
-            <div className="p-5">
-              <p className="text-3xl font-bold text-slate-900 mb-1">{pendingActions.length}</p>
-              <p className="text-xs text-slate-500">pending your approval</p>
+            <div className="p-5 bg-gradient-to-br from-blue-50/20 to-white">
+              <p className="text-3xl font-bold text-slate-900 mb-1 tracking-tight">{pendingActions.length}</p>
+              <p className="text-xs text-slate-500 font-medium">pending your approval</p>
             </div>
           </div>
 
-          <div className="panel panel-shadow p-5 bg-gradient-to-br from-violet-50/40 to-white">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center shadow-sm">
-                <Trophy className="w-4 h-4 text-white" />
+          <div className="panel panel-shadow overflow-hidden border-l-4 border-l-violet-500">
+            <div className="p-5 bg-gradient-to-br from-violet-50/60 to-white">
+              <div className="flex items-center gap-3 mb-3.5">
+                <div className="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center shadow-sm ring-1 ring-violet-700/15">
+                  <Trophy className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-semibold text-slate-900">{mission.title}</h2>
+                  <p className="text-xs text-slate-500">{mission.completedCount}/{mission.totalCount} complete</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-sm font-semibold text-slate-900">{mission.title}</h2>
-                <p className="text-xs text-slate-500">{mission.completedCount}/{mission.totalCount} complete</p>
+              <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden ring-1 ring-inset ring-slate-200/50">
+                <div
+                  className="h-full bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full transition-all duration-500"
+                  style={{ width: `${mission.percentComplete}%` }}
+                />
               </div>
+              <p className="text-xs text-violet-700 font-semibold mt-2.5">{mission.percentComplete}% complete</p>
             </div>
-            <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full transition-all duration-500"
-                style={{ width: `${mission.percentComplete}%` }}
-              />
-            </div>
-            <p className="text-xs text-violet-700 font-medium mt-2">{mission.percentComplete}% complete</p>
           </div>
         </div>
       </div>
 
       {/* At risk + Purchase orders */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 panel panel-shadow overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 bg-slate-50/60 border-b border-slate-100">
+        <div className="lg:col-span-2 panel panel-shadow overflow-hidden border-t-4 border-t-amber-400">
+          <div className="flex items-center justify-between px-5 py-4 card-header-amber">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">At risk of stocking out</h2>
               <p className="text-xs text-slate-500 mt-0.5">Within 7 days based on current velocity</p>
@@ -191,10 +193,10 @@ function Dashboard() {
           )}
         </div>
 
-        <div className="panel panel-shadow overflow-hidden">
-          <div className="px-5 py-4 bg-slate-50/60 border-b border-slate-100 flex items-center justify-between">
+        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-slate-700">
+          <div className="px-5 py-4 card-header-slate flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900">Purchase orders</h2>
-            <Link to="/purchase-orders" className="text-xs font-medium text-blue-600 hover:text-blue-700">
+            <Link to="/purchase-orders" className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 hover:border-blue-200 shadow-sm">
               View all →
             </Link>
           </div>
@@ -222,9 +224,9 @@ function Dashboard() {
       </div>
 
       {/* WebMCP info */}
-      <div className="mt-6 panel p-4 flex items-start gap-3 bg-gradient-to-r from-blue-50/30 to-violet-50/30 border-blue-100/50">
-        <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0">
-          <Boxes className="w-4 h-4 text-slate-400" />
+      <div className="mt-6 panel panel-shadow p-4 flex items-start gap-3 bg-gradient-to-r from-blue-50/40 to-violet-50/30 border-blue-200/60">
+        <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+          <Boxes className="w-4 h-4 text-slate-500" />
         </div>
         <p className="text-xs text-slate-600 leading-relaxed">
           Every metric here comes from the same server functions exposed as WebMCP tools. Connect a capable agent to
@@ -235,9 +237,11 @@ function Dashboard() {
 
       {/* Recent agent activity */}
       {recentActivity.length > 0 && (
-        <div className="mt-6 panel panel-shadow overflow-hidden">
-          <div className="px-5 py-3 bg-slate-50/60 border-b border-slate-100">
+        <div className="mt-6 panel panel-shadow overflow-hidden border-t-4 border-t-blue-400">
+          <div className="px-5 py-3.5 card-header-blue flex items-center gap-2">
+            <Boxes className="w-4 h-4 text-blue-600" />
             <h2 className="text-sm font-semibold text-slate-900">Recent agent activity</h2>
+            <span className="ml-auto text-xs bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-medium">{recentActivity.length}</span>
           </div>
           <div className="p-2">
             {recentActivity.map((entry) => (

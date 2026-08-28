@@ -49,7 +49,17 @@ function PurchaseOrdersList() {
 
       <div className="space-y-3">
         {purchaseOrders.map((po) => (
-          <div key={po.id} className="panel panel-shadow p-5">
+          <div
+            key={po.id}
+            className={`panel panel-shadow overflow-hidden ${
+              po.status === 'draft'
+                ? 'border-l-4 border-l-slate-400'
+                : po.status === 'approved'
+                  ? 'border-l-4 border-l-blue-500'
+                  : 'border-l-4 border-l-emerald-500'
+            }`}
+          >
+            <div className="p-5">
             <div className="flex items-start justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2">
@@ -97,6 +107,7 @@ function PurchaseOrdersList() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         ))}
         {purchaseOrders.length === 0 && (

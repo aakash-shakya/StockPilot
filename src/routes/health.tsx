@@ -54,7 +54,12 @@ function HealthPage() {
       </div>
       <div className="space-y-2 mb-8">
         {worryAbout.items.map((item, idx) => (
-          <div key={idx} className="panel panel-shadow p-4 flex items-center justify-between gap-4 hover:shadow-md">
+          <div
+            key={idx}
+            className={`panel panel-shadow p-4 flex items-center justify-between gap-4 hover:shadow-md border-l-4 ${
+              item.severity === 'high' ? 'border-l-red-500' : item.severity === 'medium' ? 'border-l-amber-500' : 'border-l-violet-400'
+            }`}
+          >
             <div className="flex items-start gap-3 min-w-0">
               <span className="text-xs font-mono bg-slate-100 text-slate-600 w-6 h-6 rounded-full flex items-center justify-center shrink-0">{idx + 1}</span>
               <div className="min-w-0">
@@ -85,11 +90,12 @@ function HealthPage() {
         <h2 className="text-sm font-semibold text-slate-900">All issues</h2>
         <span className="text-xs bg-slate-900 text-white px-2 py-0.5 rounded-full">{health.totalIssues}</span>
       </div>
-      <div className="panel panel-shadow overflow-hidden mb-8">
-        <div className="px-5 py-3 bg-slate-50 border-b border-slate-100">
-          <p className="text-xs font-semibold text-slate-600 uppercase tracking-wider">Issues requiring attention</p>
+      <div className="panel panel-shadow overflow-hidden mb-8 border-t-4 border-t-slate-600">
+        <div className="card-header-slate px-5 py-3">
+          <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Issues requiring attention</p>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto scrollbar-none">
+          <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100 bg-slate-50/40">
               <th className="px-5 py-3">Type</th>
@@ -117,7 +123,8 @@ function HealthPage() {
               </tr>
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
 
       {/* Dead stock */}
@@ -128,10 +135,15 @@ function HealthPage() {
           <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">{formatMoney(totalDeadCapitalCents)} tied up</span>
         )}
       </div>
-      <div className="panel panel-shadow overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-amber-50/30">
+      <div className="panel panel-shadow overflow-hidden border-t-4 border-t-amber-500">
+        <div className="card-header-amber px-5 py-3 flex items-center gap-2">
+          <PackageX className="w-4 h-4 text-amber-600" />
+          <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Dead stock — capital tied up</p>
+        </div>
+        <div className="overflow-x-auto scrollbar-none">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-amber-50/30">
               <th className="px-5 py-3">Product</th>
               <th className="px-5 py-3">Category</th>
               <th className="px-5 py-3">Quantity</th>
@@ -162,7 +174,8 @@ function HealthPage() {
               </tr>
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   )
