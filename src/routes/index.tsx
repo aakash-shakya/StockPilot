@@ -76,7 +76,7 @@ function Dashboard() {
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
         {/* Worry about - elevated with header */}
-        <div className="lg:col-span-2 panel panel-shadow overflow-hidden border-l-4 border-l-red-500/90">
+        <div className="lg:col-span-2 panel panel-shadow overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 card-header-red">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center shadow-sm ring-1 ring-red-600/20">
@@ -114,7 +114,7 @@ function Dashboard() {
 
         {/* Agent Actions + Mission */}
         <div className="space-y-4">
-          <div className="panel panel-shadow overflow-hidden border-l-4 border-l-blue-500">
+          <div className="panel panel-shadow overflow-hidden">
             <div className="px-5 py-3.5 card-header-blue flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm ring-1 ring-blue-700/15">
@@ -132,7 +132,7 @@ function Dashboard() {
             </div>
           </div>
 
-          <div className="panel panel-shadow overflow-hidden border-l-4 border-l-violet-500">
+          <div className="panel panel-shadow overflow-hidden">
             <div className="p-5 bg-gradient-to-br from-violet-50/60 to-white">
               <div className="flex items-center gap-3 mb-3.5">
                 <div className="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center shadow-sm ring-1 ring-violet-700/15">
@@ -157,7 +157,7 @@ function Dashboard() {
 
       {/* At risk + Purchase orders */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 panel panel-shadow overflow-hidden border-t-4 border-t-amber-400">
+        <div className="lg:col-span-2 panel panel-shadow overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 card-header-amber">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">At risk of stocking out</h2>
@@ -209,7 +209,7 @@ function Dashboard() {
           )}
         </div>
 
-        <div className="panel panel-shadow overflow-hidden border-t-4 border-t-slate-700">
+        <div className="panel panel-shadow overflow-hidden">
           <div className="px-5 py-4 card-header-slate flex items-center justify-between">
             <h2 className="text-sm font-semibold text-slate-900">Purchase orders</h2>
             <Link to="/purchase-orders" className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 hover:border-blue-200 shadow-sm">
@@ -253,7 +253,7 @@ function Dashboard() {
 
       {/* Recent agent activity */}
       {recentActivity.length > 0 && (
-        <div className="mt-6 panel panel-shadow overflow-hidden border-t-4 border-t-blue-400">
+        <div className="mt-6 panel panel-shadow overflow-hidden">
           <div className="px-5 py-3.5 card-header-blue flex items-center gap-2">
             <Boxes className="w-4 h-4 text-blue-600" />
             <h2 className="text-sm font-semibold text-slate-900">Recent agent activity</h2>

@@ -44,7 +44,7 @@ function SimulatorPage() {
         <p className="text-sm text-gray-500">Test demand or lead-time changes against the current baseline.</p>
       </div>
 
-      <div className="panel panel-shadow overflow-hidden border-t-4 border-t-blue-500 mb-8">
+      <div className="panel panel-shadow overflow-hidden mb-8">
         <div className="card-header-blue px-5 py-3">
           <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Configure simulation</p>
         </div>
@@ -94,7 +94,7 @@ function SimulatorPage() {
       {result && (
         <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-            <div className="panel panel-shadow p-4 border-l-4 border-l-blue-500">
+            <div className="panel panel-shadow p-4">
               <h3 className="text-xs text-blue-600 font-semibold uppercase tracking-wider mb-2">Baseline</h3>
               <div className="space-y-1">
                 <p className="text-sm text-gray-600">Velocity: <span className="font-medium text-gray-900">{result.assumptions.baselineDailyVelocity}/day</span></p>
@@ -102,7 +102,7 @@ function SimulatorPage() {
                 <p className="text-sm text-gray-600">Stockout: <span className="font-medium text-gray-900">{result.baseline.projectedStockoutDate ?? 'none'}</span></p>
               </div>
             </div>
-            <div className="panel panel-shadow p-4 border-l-4 border-l-orange-500">
+            <div className="panel panel-shadow p-4">
               <h3 className="text-xs text-orange-600 font-semibold uppercase tracking-wider mb-2">Simulated</h3>
               <div className="space-y-1">
                 <p className="text-sm text-gray-600">Velocity: <span className="font-medium text-gray-900">{result.assumptions.simulatedDailyVelocity}/day</span></p>
@@ -113,7 +113,7 @@ function SimulatorPage() {
             </div>
           </div>
 
-          <div className="panel panel-shadow overflow-hidden border-t-4 border-t-violet-500">
+          <div className="panel panel-shadow overflow-hidden">
             <div className="card-header-violet px-5 py-3 flex items-center justify-between">
               <h3 className="text-sm font-semibold text-slate-900">Projected stock, {result.assumptions.horizonDays} days</h3>
               <div className="flex items-center gap-4 text-xs text-gray-500">
