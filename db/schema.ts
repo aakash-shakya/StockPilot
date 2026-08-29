@@ -77,6 +77,7 @@ export const agentToolCalls = pgTable('agent_tool_calls', {
   input: text(),
   summary: text().notNull(),
   consequential: boolean().notNull().default(false),
+  userId: integer('user_id'),
   createdAt: timestamp('created_at').defaultNow(),
 })
 
