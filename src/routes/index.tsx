@@ -18,12 +18,13 @@ import { NumberAnimation } from '../components/ui/NumberAnimation.js'
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
-  loader: async () => {
+  loader: async ({ context }) => {
+    const userId = context.user?.id
     const [summary, atRisk, purchaseOrders, recentActivity, worryAbout, pendingActions, mission] = await Promise.all([
       getInventorySummaryFn(),
       findLowStockFn({ data: { days: 7 } }),
       getPurchaseOrdersFn(),
-      getRecentAgentActivityFn({ data: { limit: 8 } }),
+      getRecentAgentActivityFn({ data: { limit: 8, userId } }),
       whatShouldIWorryAboutFn(),
       listAgentActionsFn({ data: { status: 'pending' } }),
       getMissionStatusFn(),

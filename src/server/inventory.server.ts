@@ -482,17 +482,21 @@ export async function logAgentToolCall(input: {
   input: unknown
   summary: string
   consequential: boolean
+  userId?: number | null
 }) {
   await db.insert(agentToolCalls).values({
     toolName: input.toolName,
     input: JSON.stringify(input.input ?? {}),
     summary: input.summary,
     consequential: input.consequential,
+    userId: input.userId ?? null,
   })
 }
 
-export async function getRecentAgentActivity(limit = 30) {
-  const rows = await db.select().from(agentToolCalls).orderBy(desc(agentToolCalls.createdAt)).limit(limit)
+export async function getRecentAgentActivity(limit = 30, userId?: number | null) {
+  const rows = userId
+    ? await db.select().from(agentToolCalls).where(eq(agentToolCalls.userId, userId)).orderBy(desc(agentToolCalls.createdAt)).limit(limit)
+    : await db.select().from(agentToolCalls).orderBy(desc(agentToolCalls.createdAt)).limit(limit)
   return rows.map((row) => {
     const readOnlyTools = ['search_', 'get_', 'find_', 'analyze_', 'build_', 'what_', 'investigate_', 'query_', 'generate_', 'forecast_', 'simulate_', 'recommend_', 'compare_']
     const isReadOnly = readOnlyTools.some((prefix) => row.toolName.startsWith(prefix))

@@ -1,6 +1,8 @@
 import { createServerFn } from '@tanstack/react-start'
+import { getCookie } from '@tanstack/react-start/server'
 import { z } from 'zod'
 import * as inventory from './inventory.server.js'
+import * as auth from './auth.server.js'
 
 export const actorSchema = z.enum(['human', 'agent']).optional()
 
@@ -194,11 +196,21 @@ export const logAgentToolCallFn = createServerFn({ method: 'POST' })
       consequential: z.boolean(),
     }),
   )
-  .handler(({ data }) => inventory.logAgentToolCall(data))
+  .handler(async ({ data }) => {
+    let userId: number | null = null
+    try {
+      const token = getCookie(auth.getSessionCookieName())
+      if (token) {
+        const user = await auth.validateSessionToken(token)
+        if (user) userId = user.id
+      }
+    } catch {}
+    return inventory.logAgentToolCall({ ...data, userId })
+  })
 
 export const getRecentAgentActivityFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ limit: z.number().optional() }).optional())
-  .handler(({ data }) => inventory.getRecentAgentActivity(data?.limit))
+  .inputValidator(z.object({ limit: z.number().optional(), userId: z.number().optional() }).optional())
+  .handler(({ data }) => inventory.getRecentAgentActivity(data?.limit, data?.userId))
 
 // ---------------------------------------------------------------------------
 // Supplier intelligence & comparison
