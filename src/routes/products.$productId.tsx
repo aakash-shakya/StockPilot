@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react'
+import { useState, type FormEvent } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { ArrowLeft, Sliders } from 'lucide-react'
 import { compareSuppliersFn, getProductDetailsFn, recommendReorderFn, createPurchaseOrderFn, updateStockFn } from '../server/inventory.functions.js'
@@ -336,16 +336,6 @@ function ProductDetail() {
           </table>
         </div>
       </div>
-    </div>
-  )
-}
-
-function Stat({ label, value, extra, accent }: { label: string; value: string; extra?: ReactNode; accent?: string }) {
-  return (
-    <div className={`panel panel-shadow p-3.5 ${accent ?? 'stat-accent-slate'}`}>
-      <p className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">{label}</p>
-      <p className="text-base font-semibold text-slate-900 mt-0.5">{value}</p>
-      {extra}
     </div>
   )
 }

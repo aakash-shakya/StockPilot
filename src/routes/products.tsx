@@ -95,7 +95,7 @@ function ProductsList() {
             </thead>
             <tbody>
               {products.map((p) => (
-                <tr key={p.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                <tr key={p.id} data-product-id={p.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-all duration-300">
                   <td className="px-5 py-3.5 text-slate-400 font-mono text-xs whitespace-nowrap">{p.sku}</td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
                     <Link to="/products/$productId" params={{ productId: String(p.id) }} className="font-medium text-slate-900 hover:text-blue-600">

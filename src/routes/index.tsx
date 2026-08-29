@@ -187,7 +187,7 @@ function Dashboard() {
               </thead>
               <tbody>
                 {atRisk.map((p) => (
-                  <tr key={p.productId} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50">
+                  <tr key={p.productId} data-product-id={p.productId} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-all duration-300">
                     <td className="px-5 py-3.5">
                       <Link to="/products/$productId" params={{ productId: String(p.productId) }} className="font-medium text-slate-900 hover:text-blue-600">
                         {p.name}
