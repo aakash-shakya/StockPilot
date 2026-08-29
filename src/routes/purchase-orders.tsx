@@ -3,6 +3,8 @@ import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { approvePurchaseOrderFn, getPurchaseOrdersFn, receiveShipmentFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 import { PoStatusBadge } from '../components/badges.js'
+import { Button } from '../components/ui/Button.js'
+import { Badge } from '../components/ui/Badge.js'
 
 export const Route = createFileRoute('/purchase-orders')({
   component: PurchaseOrdersList,
@@ -41,7 +43,7 @@ function PurchaseOrdersList() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Purchase Orders</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Purchase Orders</h1>
         <p className="text-sm text-gray-500">
           {purchaseOrders.length} orders total · {draftCount} draft · {approvedCount} approved · {receivedCount} received
         </p>
@@ -57,10 +59,10 @@ function PurchaseOrdersList() {
             <div className="flex items-start justify-between mb-3">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-gray-900 text-sm">{po.poNumber}</h2>
+                  <h2 className="font-semibold text-gray-900 text-sm" style={{ fontFamily: 'var(--font-heading)' }}>{po.poNumber}</h2>
                   <PoStatusBadge status={po.status} />
                   {po.createdBy === 'agent' && (
-                    <span className="text-[11px] text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded-full font-medium">agent-created</span>
+                    <Badge variant="violet">agent-created</Badge>
                   )}
                 </div>
                 <p className="text-sm text-gray-500 mt-0.5">{po.supplierName}</p>
@@ -70,22 +72,24 @@ function PurchaseOrdersList() {
                 <p className="font-semibold text-gray-900 text-sm">{formatMoney(po.totalCostCents)}</p>
                 <div className="mt-2 flex gap-2 justify-end">
                   {po.status === 'draft' && (
-                    <button
+                    <Button
+                      variant="accent"
+                      size="sm"
                       onClick={() => approve(po.id)}
                       disabled={busyId === po.id}
-                      className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
                     >
                       {busyId === po.id ? 'Approving…' : 'Approve'}
-                    </button>
+                    </Button>
                   )}
                   {po.status === 'approved' && (
-                    <button
+                    <Button
+                      variant="success"
+                      size="sm"
                       onClick={() => receive(po.id)}
                       disabled={busyId === po.id}
-                      className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50"
                     >
                       {busyId === po.id ? 'Receiving…' : 'Mark received'}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>

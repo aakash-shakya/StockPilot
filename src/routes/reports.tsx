@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { Download, FileBarChart } from 'lucide-react'
 import { generateReportCsvFn, generateReportFn, getInventorySummaryFn } from '../server/inventory.functions.js'
+import { Button } from '../components/ui/Button.js'
 
 export const Route = createFileRoute('/reports')({
   component: ReportsPage,
@@ -59,7 +60,7 @@ function ReportsPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Reports</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Reports</h1>
         <p className="text-sm text-gray-500">Describe what you want in plain English. Deterministic parsing.</p>
       </div>
 
@@ -75,11 +76,13 @@ function ReportsPage() {
             onKeyDown={(e) => e.key === 'Enter' && void runReport(query)}
             placeholder='e.g. "monthly inventory report" or "which suppliers are underperforming"'
             className="input flex-1 min-w-64"
+            style={{ fontFamily: 'var(--font-body)' }}
           />
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="input w-auto min-w-[140px]"
+            style={{ fontFamily: 'var(--font-body)' }}
           >
             <option value="">All categories</option>
             {categories.map((c) => (
@@ -88,27 +91,28 @@ function ReportsPage() {
               </option>
             ))}
           </select>
-          <button
-            onClick={() => void runReport(query)}
+          <Button
+            variant="primary"
+            icon={<FileBarChart className="w-4 h-4" />}
             disabled={loading || !query.trim()}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
+            onClick={() => void runReport(query)}
           >
-            <FileBarChart className="w-4 h-4" />
             {loading ? 'Generating…' : 'Generate'}
-          </button>
+          </Button>
         </div>
         <div className="flex gap-2 flex-wrap">
           {EXAMPLE_QUERIES.map((example) => (
-            <button
+            <Button
               key={example}
+              variant="ghost"
+              size="xs"
               onClick={() => {
                 setQuery(example)
                 void runReport(example)
               }}
-              className="text-xs text-gray-500 bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-full transition-colors"
             >
               {example}
-            </button>
+            </Button>
           ))}
         </div>
         </div>
@@ -118,21 +122,22 @@ function ReportsPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900">{report.title}</h2>
+              <h2 className="text-lg font-semibold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>{report.title}</h2>
               <p className="text-xs text-gray-400">Generated {new Date(report.generatedAt).toLocaleString()}</p>
             </div>
-            <button
-              onClick={exportCsv}
+            <Button
+              variant="secondary"
+              size="sm"
+              icon={<Download className="w-4 h-4" />}
               disabled={exporting || report.rows.length === 0}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+              onClick={exportCsv}
             >
-              <Download className="w-4 h-4" />
               {exporting ? 'Exporting…' : 'CSV'}
-            </button>
+            </Button>
           </div>
 
           <div className="panel overflow-hidden mb-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y divide-slate-200">
+            <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y divide-[var(--color-border)]">
               {report.kpis.map((kpi, idx) => (
                 <div key={idx} className="px-5 py-4">
                   <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">{kpi.label}</p>
@@ -145,7 +150,7 @@ function ReportsPage() {
           {(report.findings.length > 0 || report.recommendations.length > 0) && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
               <div className="panel panel-shadow p-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-2">Findings</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Findings</h3>
                 {report.findings.length === 0 ? (
                   <p className="text-sm text-gray-400">None.</p>
                 ) : (
@@ -157,7 +162,7 @@ function ReportsPage() {
                 )}
               </div>
               <div className="panel panel-shadow p-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-2">Recommendations</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Recommendations</h3>
                 {report.recommendations.length === 0 ? (
                   <p className="text-sm text-gray-400">None.</p>
                 ) : (
@@ -175,7 +180,7 @@ function ReportsPage() {
             <div className="overflow-x-auto scrollbar-none">
               <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-[var(--color-border)]">
                   {columns.map((col) => (
                     <th key={col} className="px-5 py-3 whitespace-nowrap">
                       {col.replace(/([A-Z])/g, ' $1')}

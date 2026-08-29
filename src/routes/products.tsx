@@ -3,6 +3,8 @@ import { createFileRoute, Link, Outlet, useMatches } from '@tanstack/react-route
 import { Search } from 'lucide-react'
 import { getInventorySummaryFn, searchProductsFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
+import { Card } from '../components/ui/Card.js'
+import { Badge } from '../components/ui/Badge.js'
 
 export const Route = createFileRoute('/products')({
   component: ProductsLayout,
@@ -41,7 +43,7 @@ function ProductsList() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight">Products</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>Products</h1>
         <p className="text-sm text-slate-500">{products.length} products in inventory • searchable and filterable</p>
       </div>
 
@@ -56,6 +58,7 @@ function ProductsList() {
             }}
             placeholder="Search by name or SKU..."
             className="input pl-9"
+            style={{ fontFamily: 'var(--font-body)' }}
           />
         </div>
         <select
@@ -65,6 +68,7 @@ function ProductsList() {
             void runSearch(query, e.target.value)
           }}
           className="input w-auto min-w-[160px]"
+          style={{ fontFamily: 'var(--font-body)' }}
         >
           <option value="">All categories</option>
           {categories.map((c) => (
@@ -75,15 +79,15 @@ function ProductsList() {
         </select>
       </div>
 
-      <div className={`panel panel-shadow overflow-hidden transition-opacity duration-200 ${loading ? 'opacity-60' : ''}`}>
+      <Card className={`overflow-hidden transition-opacity duration-200 ${loading ? 'opacity-60' : ''}`}>
         <div className="px-5 py-3.5 card-header-slate flex items-center justify-between">
           <p className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Catalog</p>
-          <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-full font-medium shadow-sm">{products.length} items</span>
+          <Badge className="text-xs">{products.length} items</Badge>
         </div>
         <div className="overflow-x-auto scrollbar-none">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50/60">
+              <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-[var(--color-border)]" style={{ backgroundColor: 'var(--color-surface-sunken)' }}>
                 <th className="px-5 py-3 whitespace-nowrap">SKU</th>
                 <th className="px-5 py-3 whitespace-nowrap">Name</th>
                 <th className="px-5 py-3 whitespace-nowrap">Category</th>
@@ -95,19 +99,19 @@ function ProductsList() {
             </thead>
             <tbody>
               {products.map((p) => (
-                <tr key={p.id} data-product-id={p.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-all duration-300">
+                <tr key={p.id} data-product-id={p.id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-slate-50/50 transition-all duration-300">
                   <td className="px-5 py-3.5 text-slate-400 font-mono text-xs whitespace-nowrap">{p.sku}</td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
                     <Link to="/products/$productId" params={{ productId: String(p.id) }} className="font-medium text-slate-900 hover:text-blue-600">
                       {p.name}
                     </Link>
                   </td>
-                  <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap"><span className="bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full text-xs font-medium">{p.category}</span></td>
+                  <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap"><Badge>{p.category}</Badge></td>
                   <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">{p.supplierName}</td>
                   <td className="px-5 py-3.5 whitespace-nowrap">
-                    <span className={`font-semibold px-2 py-0.5 rounded-full text-xs border ${p.quantity <= p.reorderThreshold ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>
+                    <Badge className={p.quantity <= p.reorderThreshold ? 'bg-amber-50 text-amber-700 border-amber-200' : ''}>
                       {p.quantity}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-5 py-3.5 text-slate-400 whitespace-nowrap">{p.reorderThreshold}</td>
                   <td className="px-5 py-3.5 text-right font-semibold text-slate-900 whitespace-nowrap">{formatMoney(p.priceCents)}</td>
@@ -123,7 +127,7 @@ function ProductsList() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

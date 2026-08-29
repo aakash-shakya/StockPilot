@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 import { simulateInventoryFn, searchProductsFn } from '../server/inventory.functions.js'
+import { Button } from '../components/ui/Button.js'
 
 export const Route = createFileRoute('/simulator')({
   component: SimulatorPage,
@@ -40,7 +41,7 @@ function SimulatorPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Simulator</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Simulator</h1>
         <p className="text-sm text-gray-500">Test demand or lead-time changes against the current baseline.</p>
       </div>
 
@@ -54,6 +55,7 @@ function SimulatorPage() {
       value={productId}
       onChange={(e) => setProductId(e.target.value ? Number(e.target.value) : '')}
       className="sm:col-span-2 input"
+      style={{ fontFamily: 'var(--font-body)' }}
      >
       <option value="">Select a product…</option>
       {products.map((p) => (
@@ -69,6 +71,7 @@ function SimulatorPage() {
        value={demandChangePct}
        onChange={(e) => setDemandChangePct(e.target.value)}
        className="input"
+       style={{ fontFamily: 'var(--font-body)' }}
       />
      </div>
      <div>
@@ -78,6 +81,7 @@ function SimulatorPage() {
        value={leadTimeChangeDays}
        onChange={(e) => setLeadTimeChangeDays(e.target.value)}
        className="input"
+       style={{ fontFamily: 'var(--font-body)' }}
       />
      </div>
     </div>
@@ -91,16 +95,17 @@ function SimulatorPage() {
        min={1}
        max={90}
        className="input"
+       style={{ fontFamily: 'var(--font-body)' }}
       />
      </div>
     </div>
-        <button
-          onClick={() => void runSimulation()}
+        <Button
+          variant="primary"
           disabled={loading || !productId}
-          className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
+          onClick={() => void runSimulation()}
         >
           {loading ? 'Simulating…' : 'Run simulation'}
-        </button>
+        </Button>
         </div>
       </div>
 
@@ -108,7 +113,7 @@ function SimulatorPage() {
         <div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             <div className="panel panel-shadow p-4">
-              <h3 className="text-xs text-blue-600 font-semibold uppercase tracking-wider mb-2">Baseline</h3>
+              <h3 className="text-xs text-blue-600 font-semibold uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Baseline</h3>
               <div className="space-y-1">
                 <p className="text-sm text-gray-600">Velocity: <span className="font-medium text-gray-900">{result.assumptions.baselineDailyVelocity}/day</span></p>
                 <p className="text-sm text-gray-600">Coverage: <span className="font-medium text-gray-900">{result.baseline.coverageDays ?? 'n/a'} days</span></p>
@@ -116,7 +121,7 @@ function SimulatorPage() {
               </div>
             </div>
             <div className="panel panel-shadow p-4">
-              <h3 className="text-xs text-orange-600 font-semibold uppercase tracking-wider mb-2">Simulated</h3>
+              <h3 className="text-xs text-orange-600 font-semibold uppercase tracking-wider mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Simulated</h3>
               <div className="space-y-1">
                 <p className="text-sm text-gray-600">Velocity: <span className="font-medium text-gray-900">{result.assumptions.simulatedDailyVelocity}/day</span></p>
                 <p className="text-sm text-gray-600">Coverage: <span className="font-medium text-gray-900">{result.simulated.coverageDays ?? 'n/a'} days</span></p>
@@ -128,7 +133,7 @@ function SimulatorPage() {
 
           <div className="panel panel-shadow overflow-hidden">
             <div className="card-header-violet px-5 py-3 flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-slate-900">Projected stock, {result.assumptions.horizonDays} days</h3>
+              <h3 className="text-sm font-semibold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>Projected stock, {result.assumptions.horizonDays} days</h3>
               <div className="flex items-center gap-4 text-xs text-gray-500">
                 <span className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ backgroundColor: 'var(--series-blue)' }} />

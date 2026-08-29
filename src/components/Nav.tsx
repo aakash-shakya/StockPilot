@@ -33,13 +33,28 @@ export function Nav({ user }: { user?: { id: number; name: string; email: string
 
   return (
     <>
-      <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-40">
+      <nav
+        className="sticky top-0 z-40 border-b"
+        style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.85)',
+          backdropFilter: 'blur(12px) saturate(180%)',
+          borderColor: 'var(--color-border)',
+        }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1 h-14">
-          <Link to="/" className="flex items-center gap-2 shrink-0 mr-3">
-            <div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center">
+          <Link to="/" className="flex items-center gap-2.5 shrink-0 mr-3">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: 'var(--color-ink)' }}
+            >
               <PackageSearch className="w-4 h-4 text-white" />
             </div>
-            <span className="font-semibold text-slate-900 tracking-tight text-sm hidden sm:block">StockPilot</span>
+            <span
+              className="font-semibold tracking-tight text-sm hidden sm:block"
+              style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-ink)' }}
+            >
+              StockPilot
+            </span>
           </Link>
 
           {/* Desktop nav */}
@@ -49,11 +64,15 @@ export function Nav({ user }: { user?: { id: number; name: string; email: string
                 key={link.to}
                 to={link.to}
                 className={cn(
-                  'flex items-center gap-1.5 text-[13px] font-medium text-slate-500 px-2.5 py-1.5 rounded-md whitespace-nowrap shrink-0 transition-colors',
-                  'hover:text-slate-900 hover:bg-slate-100/60',
-                  '[&.active]:text-slate-900 [&.active]:bg-slate-100',
+                  'flex items-center gap-1.5 text-[13px] font-medium px-2.5 py-1.5 rounded-md whitespace-nowrap shrink-0 transition-colors',
+                  'hover:bg-[var(--color-surface-sunken)]',
+                  '[&.active]:bg-[var(--color-surface-sunken)]',
                 )}
-                activeProps={{ className: 'active' }}
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  color: 'var(--color-ink-muted)',
+                }}
+                activeProps={{ className: 'active', style: { color: 'var(--color-ink)' } }}
               >
                 <link.icon className="w-3.5 h-3.5" />
                 {link.label}
@@ -64,15 +83,20 @@ export function Nav({ user }: { user?: { id: number; name: string; email: string
           <div className="flex items-center gap-2 ml-auto md:ml-3 shrink-0">
             <Link
               to="/products/new"
-              className="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-white bg-slate-900 px-3 py-1.5 rounded-lg whitespace-nowrap hover:bg-slate-800 shadow-sm transition-colors"
+              className="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-white px-3 py-1.5 rounded-lg whitespace-nowrap shadow-sm transition-colors"
+              style={{
+                fontFamily: 'var(--font-body)',
+                backgroundColor: 'var(--color-ink)',
+              }}
             >
               <PlusCircle className="w-3.5 h-3.5" />
               New Product
             </Link>
             <Link
               to="/agent-tools"
-              className="flex items-center justify-center w-8 h-8 text-slate-400 rounded-lg whitespace-nowrap hover:bg-slate-100 hover:text-slate-600 [&.active]:text-slate-600 [&.active]:bg-slate-100 transition-colors"
-              activeProps={{ className: 'active' }}
+              className="flex items-center justify-center w-8 h-8 rounded-lg whitespace-nowrap transition-colors"
+              style={{ color: 'var(--color-ink-muted)' }}
+              activeProps={{ className: 'active', style: { color: 'var(--color-ink-secondary)', backgroundColor: 'var(--color-surface-sunken)' } }}
               title="Agent Tools (developer)"
             >
               <Terminal className="w-4 h-4" />
@@ -80,7 +104,11 @@ export function Nav({ user }: { user?: { id: number; name: string; email: string
             {user ? (
               <UserMenu user={user} />
             ) : (
-              <Link to="/login" className="text-sm font-medium text-slate-600 hover:text-slate-900 px-2">
+              <Link
+                to="/login"
+                className="text-sm font-medium px-2 transition-colors"
+                style={{ fontFamily: 'var(--font-body)', color: 'var(--color-ink-secondary)' }}
+              >
                 Sign in
               </Link>
             )}
@@ -88,7 +116,8 @@ export function Nav({ user }: { user?: { id: number; name: string; email: string
             {/* Mobile hamburger */}
             <button
               onClick={() => setMobileOpen(true)}
-              className="md:hidden flex items-center justify-center w-8 h-8 text-slate-500 rounded-lg hover:bg-slate-100 transition-colors"
+              className="md:hidden flex items-center justify-center w-8 h-8 rounded-lg transition-colors"
+              style={{ color: 'var(--color-ink-muted)' }}
               aria-label="Open menu"
             >
               <Menu className="w-5 h-5" />
@@ -106,7 +135,8 @@ export function Nav({ user }: { user?: { id: number; name: string; email: string
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 md:hidden"
+              className="fixed inset-0 backdrop-blur-sm z-50 md:hidden"
+              style={{ backgroundColor: 'rgba(0, 0, 0, 0.2)' }}
               onClick={() => setMobileOpen(false)}
             />
             <motion.div
@@ -114,16 +144,26 @@ export function Nav({ user }: { user?: { id: number; name: string; email: string
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed top-0 right-0 bottom-0 w-72 bg-white border-l border-slate-200 shadow-xl z-50 md:hidden overflow-y-auto"
+              className="fixed top-0 right-0 bottom-0 w-72 border-l shadow-xl z-50 md:hidden overflow-y-auto"
+              style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
             >
-              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                <span className="text-sm font-semibold text-slate-900">Navigation</span>
+              <div
+                className="flex items-center justify-between px-4 py-3 border-b"
+                style={{ borderColor: 'var(--color-border)' }}
+              >
+                <span
+                  className="text-sm font-semibold"
+                  style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-ink)' }}
+                >
+                  Navigation
+                </span>
                 <button
                   onClick={() => setMobileOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+                  className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+                  style={{ color: 'var(--color-ink-muted)' }}
                   aria-label="Close menu"
                 >
-                  <X className="w-4 h-4 text-slate-500" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
               <div className="p-2">
@@ -133,22 +173,24 @@ export function Nav({ user }: { user?: { id: number; name: string; email: string
                     to={link.to}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
-                      'flex items-center gap-3 text-sm font-medium text-slate-600 px-3 py-2.5 rounded-lg transition-colors',
-                      'hover:text-slate-900 hover:bg-slate-50',
-                      '[&.active]:text-slate-900 [&.active]:bg-slate-100',
+                      'flex items-center gap-3 text-sm font-medium px-3 py-2.5 rounded-lg transition-colors',
+                      'hover:bg-[var(--color-surface-sunken)]',
+                      '[&.active]:bg-[var(--color-surface-sunken)]',
                     )}
-                    activeProps={{ className: 'active' }}
+                    style={{ fontFamily: 'var(--font-body)', color: 'var(--color-ink-secondary)' }}
+                    activeProps={{ className: 'active', style: { color: 'var(--color-ink)' } }}
                   >
                     <link.icon className="w-4 h-4" />
                     {link.label}
                   </Link>
                 ))}
               </div>
-              <div className="p-2 border-t border-slate-100">
+              <div className="p-2 border-t" style={{ borderColor: 'var(--color-border)' }}>
                 <Link
                   to="/products/new"
                   onClick={() => setMobileOpen(false)}
-                  className="flex items-center gap-3 text-sm font-medium text-white bg-slate-900 px-3 py-2.5 rounded-lg hover:bg-slate-800 transition-colors"
+                  className="flex items-center gap-3 text-sm font-medium text-white px-3 py-2.5 rounded-lg transition-colors"
+                  style={{ fontFamily: 'var(--font-body)', backgroundColor: 'var(--color-ink)' }}
                 >
                   <PlusCircle className="w-4 h-4" />
                   New Product
@@ -197,12 +239,21 @@ function UserMenu({ user }: { user: { name: string; email: string } }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         aria-haspopup="menu"
-        className="flex items-center gap-2 px-2 py-1 rounded-full hover:bg-slate-100 border border-transparent hover:border-slate-200 transition-colors"
+        className="flex items-center gap-2 px-2 py-1 rounded-full transition-colors"
+        style={{ border: '1px solid transparent' }}
       >
-        <div className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-medium ring-1 ring-slate-900/10">
+        <div
+          className="w-7 h-7 rounded-full text-white flex items-center justify-center text-xs font-medium"
+          style={{ backgroundColor: 'var(--color-accent)' }}
+        >
           {user.name.slice(0, 1).toUpperCase()}
         </div>
-        <span className="text-sm font-medium text-slate-700 hidden sm:block max-w-[120px] truncate">{user.name}</span>
+        <span
+          className="text-sm font-medium hidden sm:block max-w-[120px] truncate"
+          style={{ fontFamily: 'var(--font-body)', color: 'var(--color-ink-secondary)' }}
+        >
+          {user.name}
+        </span>
       </button>
       <AnimatePresence>
         {open && (
@@ -211,15 +262,24 @@ function UserMenu({ user }: { user: { name: string; email: string } }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -4 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="absolute right-0 top-full mt-2 w-60 bg-white border border-slate-200 rounded-xl shadow-xl p-2 z-50 origin-top-right"
+            className="absolute right-0 top-full mt-2 w-60 rounded-xl shadow-xl p-2 z-50 origin-top-right border"
+            style={{ backgroundColor: 'var(--color-surface)', borderColor: 'var(--color-border)' }}
           >
-            <div className="px-3 py-2 border-b border-slate-100 mb-1">
-              <p className="text-sm font-semibold text-slate-900 truncate">{user.name}</p>
-              <p className="text-xs text-slate-500 truncate">{user.email}</p>
+            <div className="px-3 py-2 border-b mb-1" style={{ borderColor: 'var(--color-border)' }}>
+              <p
+                className="text-sm font-semibold truncate"
+                style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-ink)' }}
+              >
+                {user.name}
+              </p>
+              <p className="text-xs truncate" style={{ color: 'var(--color-ink-muted)' }}>
+                {user.email}
+              </p>
             </div>
             <button
               onClick={handleLogout}
-              className="w-full text-left text-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 px-3 py-2 rounded-lg transition-colors"
+              className="w-full text-left text-sm px-3 py-2 rounded-lg transition-colors"
+              style={{ fontFamily: 'var(--font-body)', color: 'var(--color-ink-secondary)' }}
             >
               Sign out
             </button>

@@ -4,6 +4,9 @@ import { ArrowLeft, Sliders } from 'lucide-react'
 import { compareSuppliersFn, getProductDetailsFn, recommendReorderFn, createPurchaseOrderFn, updateStockFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 import { RiskBadge, TrendLabel } from '../components/badges.js'
+import { Button } from '../components/ui/Button.js'
+import { Card } from '../components/ui/Card.js'
+import { Badge } from '../components/ui/Badge.js'
 
 export const Route = createFileRoute('/products/$productId')({
   component: ProductDetail,
@@ -102,7 +105,7 @@ function ProductDetail() {
         </Link>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{product.name}</h1>
+            <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>{product.name}</h1>
             <p className="text-sm text-gray-500 mt-0.5">
               {product.sku} · {product.category} · {product.supplierName}
             </p>
@@ -126,8 +129,8 @@ function ProductDetail() {
       )}
 
       {/* Metrics sheet — dense, no card mosaic */}
-      <div className="panel overflow-hidden mb-8">
-        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y divide-slate-200">
+      <Card className="overflow-hidden mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y" style={{ borderColor: 'var(--color-border)' }}>
           <div className="px-4 py-3.5">
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">In stock</p>
             <p className="text-base font-semibold text-slate-900 mt-1 tabular-nums">{product.quantity}</p>
@@ -162,7 +165,7 @@ function ProductDetail() {
             <p className="text-sm font-semibold text-slate-900 mt-1 tabular-nums">{formatMoney(product.costCents)}{(product as any).priceCents ? ` / ${formatMoney((product as any).priceCents)}` : ''}</p>
           </div>
         </div>
-      </div>
+      </Card>
 
       {product.delayNote && (
         <div className="mb-8 text-sm bg-amber-50 text-amber-700 px-4 py-2.5 rounded-lg border border-amber-100">{product.delayNote}</div>
@@ -170,19 +173,18 @@ function ProductDetail() {
 
       {/* Action cards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-8">
-        <div className="panel panel-shadow overflow-hidden">
+        <Card className="overflow-hidden">
           <div className="card-header-blue px-5 py-3">
-            <h2 className="text-sm font-semibold text-slate-900">Reorder recommendation</h2>
+            <h2 className="text-sm font-semibold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>Reorder recommendation</h2>
           </div>
           <div className="p-5">
           {!recommendation ? (
-            <button
+            <Button
               onClick={handleRecommend}
               disabled={recommending}
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
             >
               {recommending ? 'Calculating…' : 'Get recommendation'}
-            </button>
+            </Button>
           ) : (
             <div className="space-y-3">
               <p className="text-sm text-gray-600">
@@ -190,13 +192,12 @@ function ProductDetail() {
                 {formatMoney(recommendation.estimatedCostCents)}).
               </p>
               <div className="flex gap-2">
-                <button
+                <Button
                   onClick={handleCreatePo}
                   disabled={creatingPo || recommendation.suggestedQuantity <= 0}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
                 >
                   {creatingPo ? 'Creating…' : 'Create draft PO'}
-                </button>
+                </Button>
                 <button onClick={() => setRecommendation(null)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">
                   Dismiss
                 </button>
@@ -204,11 +205,11 @@ function ProductDetail() {
             </div>
           )}
           </div>
-        </div>
+        </Card>
 
-        <div className="panel panel-shadow overflow-hidden">
+        <Card className="overflow-hidden">
           <div className="card-header-emerald px-5 py-3">
-            <h2 className="text-sm font-semibold text-slate-900">Manual stock adjustment</h2>
+            <h2 className="text-sm font-semibold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>Manual stock adjustment</h2>
           </div>
           <div className="p-5">
             <form onSubmit={handleAdjust} className="space-y-3">
@@ -219,11 +220,13 @@ function ProductDetail() {
                 onChange={(e) => setAdjustQty(e.target.value)}
                 placeholder="e.g. -3 or 10"
                 className="input flex-1"
+                style={{ fontFamily: 'var(--font-body)' }}
               />
               <select
                 value={adjustType}
                 onChange={(e) => setAdjustType(e.target.value as MovementType)}
                 className="input w-auto min-w-[130px]"
+                style={{ fontFamily: 'var(--font-body)' }}
               >
                 <option value="adjustment">Adjustment</option>
                 <option value="restock">Restock</option>
@@ -236,31 +239,30 @@ function ProductDetail() {
               onChange={(e) => setAdjustNote(e.target.value)}
               placeholder="Reason (optional)"
               className="input"
+              style={{ fontFamily: 'var(--font-body)' }}
             />
-            <button
+            <Button
               type="submit"
               disabled={adjusting || !adjustQty}
-              className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
             >
               {adjusting ? 'Saving…' : 'Apply adjustment'}
-            </button>
+            </Button>
           </form>
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* Compare suppliers */}
-      <div className="panel panel-shadow overflow-hidden mb-8">
+      <Card className="overflow-hidden mb-8">
         <div className="card-header-violet px-5 py-3 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-900">Compare suppliers</h2>
+          <h2 className="text-sm font-semibold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>Compare suppliers</h2>
           {!comparison && (
-            <button
+            <Button
               onClick={() => void handleCompare()}
               disabled={comparing}
-              className="px-3 py-1.5 bg-slate-900 text-white text-xs font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50 shadow-sm"
             >
               {comparing ? 'Comparing…' : 'Compare suppliers'}
-            </button>
+            </Button>
           )}
         </div>
         <div className="p-5">
@@ -272,7 +274,7 @@ function ProductDetail() {
             )}
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+                <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-[var(--color-border)]">
                   <th className="py-2.5 pr-2">Supplier</th>
                   <th className="py-2.5 pr-2">Unit cost</th>
                   <th className="py-2.5 pr-2">Lead time (+ delay)</th>
@@ -282,7 +284,7 @@ function ProductDetail() {
               </thead>
               <tbody>
                 {comparison.options.map((o) => (
-                  <tr key={o.supplierId} className="border-b border-gray-50 last:border-0">
+                  <tr key={o.supplierId} className="border-b border-[var(--color-border)] last:border-0">
                     <td className="py-2.5 pr-2 font-medium text-gray-900">
                       {o.supplierName}
                       {o.isPrimary && <span className="text-xs text-gray-400 ml-1">(primary)</span>}
@@ -292,7 +294,7 @@ function ProductDetail() {
                     <td className="py-2.5 pr-2 text-gray-600">{o.reliabilityScore !== null ? `${o.reliabilityScore}/100` : 'n/a'}</td>
                     <td className="py-2.5 pr-2">
                       {o.supplierId === comparison.recommendedSupplierId && (
-                        <span className="text-xs text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">Recommended</span>
+                        <Badge className="text-xs bg-emerald-50 text-emerald-700">Recommended</Badge>
                       )}
                     </td>
                   </tr>
@@ -302,17 +304,17 @@ function ProductDetail() {
           </div>
         )}
         </div>
-      </div>
+      </Card>
 
       {/* Recent movements */}
-      <div className="panel panel-shadow overflow-hidden">
+      <Card className="overflow-hidden">
         <div className="card-header-slate px-5 py-3">
-          <h2 className="text-sm font-semibold text-slate-900">Recent movements</h2>
+          <h2 className="text-sm font-semibold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>Recent movements</h2>
         </div>
         <div className="overflow-x-auto scrollbar-none">
           <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+            <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-[var(--color-border)]">
               <th className="px-5 py-2.5">Date</th>
               <th className="px-5 py-2.5">Type</th>
               <th className="px-5 py-2.5">Change</th>
@@ -322,7 +324,7 @@ function ProductDetail() {
           </thead>
           <tbody>
             {product.recentMovements.map((m: any) => (
-              <tr key={m.id} className="border-b border-gray-50 last:border-0">
+              <tr key={m.id} className="border-b border-[var(--color-border)] last:border-0">
                 <td className="px-5 py-2.5 text-gray-400 text-xs font-mono">{new Date(m.createdAt).toLocaleDateString()}</td>
                 <td className="px-5 py-2.5 capitalize text-gray-600">{m.type}</td>
                 <td className={`px-5 py-2.5 font-medium ${m.quantityDelta < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
@@ -335,7 +337,7 @@ function ProductDetail() {
           </tbody>
           </table>
         </div>
-      </div>
+      </Card>
     </div>
   )
 }

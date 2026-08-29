@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { compareSuppliersFn, getSupplierIntelligenceFn, searchProductsFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
+import { Badge } from '../components/ui/Badge.js'
 
 export const Route = createFileRoute('/suppliers')({
   component: SuppliersPage,
@@ -37,19 +38,19 @@ function SuppliersPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight">Suppliers</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>Suppliers</h1>
         <p className="text-sm text-slate-500">Reliability metrics from real purchase order history — never estimated.</p>
       </div>
 
       <div className="panel panel-shadow overflow-hidden mb-8">
         <div className="card-header-slate px-5 py-3 flex items-center justify-between">
-          <h2 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Supplier intelligence</h2>
-          <span className="text-xs bg-white border border-slate-200 text-slate-600 px-2.5 py-1 rounded-full font-medium shadow-sm">{intelligence.length} suppliers</span>
+          <h2 className="text-xs font-semibold text-slate-700 uppercase tracking-wider" style={{ fontFamily: 'var(--font-heading)' }}>Supplier intelligence</h2>
+          <Badge variant="default">{intelligence.length} suppliers</Badge>
         </div>
         <div className="overflow-x-auto scrollbar-none">
           <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-slate-50/60">
+            <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-[var(--color-border)] bg-slate-50/60">
               <th className="px-5 py-3">Supplier</th>
               <th className="px-5 py-3">Lead time</th>
               <th className="px-5 py-3">Delay</th>
@@ -68,13 +69,13 @@ function SuppliersPage() {
                 <td className="px-5 py-3.5 text-slate-600">{s.delayDays > 0 ? `+${s.delayDays}d` : '—'}</td>
                 <td className="px-5 py-3.5 text-slate-600">{s.onTimePct !== null ? `${s.onTimePct}%` : 'n/a'}</td>
                 <td className="px-5 py-3.5 text-slate-600">{s.avgDelayDays !== null ? `${s.avgDelayDays}d` : '—'}</td>
-                <td className="px-5 py-3.5 text-slate-600"><span className="bg-slate-100 px-2 py-0.5 rounded-full text-xs">{s.activeOrders}</span></td>
+                <td className="px-5 py-3.5 text-slate-600"><Badge variant="default">{s.activeOrders}</Badge></td>
                 <td className="px-5 py-3.5 text-slate-600">{s.avgCostCents !== null ? formatMoney(s.avgCostCents) : '—'}</td>
                 <td className="px-5 py-3.5">
                   {s.reliabilityScore !== null ? (
-                    <span className={`font-bold px-2 py-1 rounded-lg text-xs ${s.reliabilityScore >= 70 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : s.reliabilityScore >= 40 ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
+                    <Badge variant={s.reliabilityScore >= 70 ? 'emerald' : s.reliabilityScore >= 40 ? 'amber' : 'red'}>
                       {s.reliabilityScore}/100
-                    </span>
+                    </Badge>
                   ) : (
                     <span className="text-slate-400 text-xs">no history</span>
                   )}
@@ -88,7 +89,7 @@ function SuppliersPage() {
 
       <div className="panel panel-shadow overflow-hidden">
         <div className="card-header-violet px-5 py-4">
-          <h2 className="text-sm font-semibold text-slate-900">Compare suppliers</h2>
+          <h2 className="text-sm font-semibold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>Compare suppliers</h2>
           <p className="text-xs text-slate-500">Side-by-side cost, lead time, and reliability for a specific product.</p>
         </div>
         <div className="p-5">
@@ -96,6 +97,7 @@ function SuppliersPage() {
           value={productId}
           onChange={(e) => void handleSelect(e.target.value)}
           className="input max-w-md mb-4"
+          style={{ fontFamily: 'var(--font-body)' }}
         >
           <option value="">Select a product…</option>
           {products.map((p) => (
@@ -114,7 +116,7 @@ function SuppliersPage() {
             )}
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200">
+                <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-[var(--color-border)]">
                   <th className="py-2.5 pr-2">Supplier</th>
                   <th className="py-2.5 pr-2">Unit cost</th>
                   <th className="py-2.5 pr-2">Lead time (+ delay)</th>
@@ -134,7 +136,7 @@ function SuppliersPage() {
                     <td className="py-3 pr-2 text-slate-600">{o.reliabilityScore !== null ? `${o.reliabilityScore}/100` : 'n/a'}</td>
                     <td className="py-3 pr-2">
                       {o.supplierId === comparison.recommendedSupplierId && (
-                        <span className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-full font-medium">Recommended</span>
+                        <Badge variant="emerald">Recommended</Badge>
                       )}
                     </td>
                   </tr>

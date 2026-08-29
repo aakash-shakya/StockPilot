@@ -39,7 +39,9 @@ function Dashboard() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight">Inventory overview</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
+          Inventory overview
+        </h1>
         <p className="text-sm text-slate-500">
           Real-time data shared with WebMCP tools — agents and this dashboard read and write the same state.
         </p>

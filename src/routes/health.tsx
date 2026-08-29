@@ -3,6 +3,8 @@ import { PackageX } from 'lucide-react'
 import { findDeadStockFn, getInventoryHealthCheckFn, whatShouldIWorryAboutFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 import { SeverityBadge } from '../components/badges.js'
+import { Button } from '../components/ui/Button.js'
+import { Badge } from '../components/ui/Badge.js'
 
 export const Route = createFileRoute('/health')({
   component: HealthPage,
@@ -23,13 +25,13 @@ function HealthPage() {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight">Inventory Health</h1>
+        <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>Inventory Health</h1>
         <p className="text-sm text-slate-500">{worryAbout.summary}</p>
       </div>
 
       {/* Severity KPI bar */}
       <div className="panel overflow-hidden mb-8">
-        <div className="grid grid-cols-3 divide-x divide-slate-200">
+        <div className="grid grid-cols-3 divide-x divide-[var(--color-border)]">
           <div className="px-5 py-4">
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-red-500" /> High severity
@@ -57,8 +59,8 @@ function HealthPage() {
       {/* What to worry about */}
       <div className="flex items-center gap-2 mb-3">
         <div className="w-1 h-5 bg-red-500 rounded-full" />
-        <h2 className="text-sm font-semibold text-slate-900">What needs attention</h2>
-        <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{worryAbout.items.length}</span>
+        <h2 className="text-sm font-semibold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>What needs attention</h2>
+        <Badge variant="default">{worryAbout.items.length}</Badge>
       </div>
       <div className="space-y-2 mb-8">
         {worryAbout.items.map((item, idx) => (
@@ -77,8 +79,8 @@ function HealthPage() {
             <div className="flex items-center gap-2 shrink-0">
               <SeverityBadge severity={item.severity} />
               {item.productId && (
-                <Link to="/products/$productId" params={{ productId: String(item.productId) }} className="text-xs bg-blue-600 text-white px-2.5 py-1 rounded-lg hover:bg-blue-700">
-                  View
+                <Link to="/products/$productId" params={{ productId: String(item.productId) }}>
+                  <Button variant="accent" size="xs">View</Button>
                 </Link>
               )}
             </div>
@@ -94,8 +96,8 @@ function HealthPage() {
       {/* All issues */}
       <div className="flex items-center gap-2 mb-3">
         <div className="w-1 h-5 bg-slate-700 rounded-full" />
-        <h2 className="text-sm font-semibold text-slate-900">All issues</h2>
-        <span className="text-xs bg-slate-900 text-white px-2 py-0.5 rounded-full">{health.totalIssues}</span>
+        <h2 className="text-sm font-semibold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>All issues</h2>
+        <Badge variant="default">{health.totalIssues}</Badge>
       </div>
       <div className="panel panel-shadow overflow-hidden mb-8">
         <div className="card-header-slate px-5 py-3">
@@ -104,7 +106,7 @@ function HealthPage() {
         <div className="overflow-x-auto scrollbar-none">
           <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100 bg-slate-50/40">
+            <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-[var(--color-border)] bg-slate-50/40">
               <th className="px-5 py-3">Type</th>
               <th className="px-5 py-3">Severity</th>
               <th className="px-5 py-3">Description</th>
@@ -137,9 +139,9 @@ function HealthPage() {
       {/* Dead stock */}
       <div className="flex items-center gap-2 mb-3">
         <PackageX className="w-4 h-4 text-slate-400" />
-        <h2 className="text-sm font-semibold text-slate-900">Dead Stock</h2>
+        <h2 className="text-sm font-semibold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>Dead Stock</h2>
         {totalDeadCapitalCents > 0 && (
-          <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-medium">{formatMoney(totalDeadCapitalCents)} tied up</span>
+          <Badge variant="amber">{formatMoney(totalDeadCapitalCents)} tied up</Badge>
         )}
       </div>
       <div className="panel panel-shadow overflow-hidden">
@@ -150,7 +152,7 @@ function HealthPage() {
         <div className="overflow-x-auto scrollbar-none">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-200 bg-amber-50/30">
+              <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-[var(--color-border)] bg-amber-50/30">
               <th className="px-5 py-3">Product</th>
               <th className="px-5 py-3">Category</th>
               <th className="px-5 py-3">Quantity</th>
