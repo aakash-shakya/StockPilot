@@ -1,4 +1,5 @@
 import { zodToJsonSchema } from '@alcyone-labs/zod-to-json-schema'
+import { z } from 'zod'
 import {
   approvePurchaseOrderFn,
   approvePurchaseOrderSchema,
@@ -777,6 +778,104 @@ const MUTATE_TOOLS: ToolDef[] = [
 // COLLABORATE — the human-in-the-loop Agent Action Center
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// NAVIGATE — lightweight client-side UI tools (DOM events, no server calls)
+// ---------------------------------------------------------------------------
+
+const NAVIGATE_TOOLS: ToolDef[] = [
+  {
+    name: 'navigate_to',
+    title: 'Navigate to a page',
+    description:
+      'Navigate the user to a specific page in the app. Use this to direct the user to a product detail page, the dashboard, purchase orders, or any other route. The agent should navigate after presenting information so the user can see the relevant page.',
+    inputSchema: toJsonSchema(
+      z.object({
+        path: z.enum(['/', '/products', '/purchase-orders']).describe('Route path to navigate to'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Navigate to a page',
+    },
+    readOnly: true,
+    run: async (input) => {
+      window.dispatchEvent(new CustomEvent('agent:navigate', { detail: { path: input.path } }))
+      return { summary: `Navigating to ${input.path}`, payload: { navigated: true, path: input.path } }
+    },
+  },
+  {
+    name: 'highlight_product',
+    title: 'Highlight a product on screen',
+    description:
+      'Visually highlight a specific product on the current page by adding a brief pulsing glow effect around its card. Use this after presenting product analysis to draw the user\'s eye to the most important item. The highlight fades after a few seconds.',
+    inputSchema: toJsonSchema(
+      z.object({
+        productId: z.number().describe('The product ID to highlight'),
+        durationMs: z.number().optional().default(4000).describe('How long to highlight in milliseconds'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Highlight a product on screen',
+    },
+    readOnly: true,
+    run: async (input) => {
+      window.dispatchEvent(
+        new CustomEvent('agent:highlight', { detail: { productId: input.productId, durationMs: input.durationMs ?? 4000 } }),
+      )
+      return { summary: `Highlighting product ${input.productId}`, payload: { highlighted: true, productId: input.productId } }
+    },
+  },
+  {
+    name: 'scroll_to_section',
+    title: 'Scroll to a section of the page',
+    description:
+      'Scroll the page to a specific section by heading text or element ID. Use this to direct the user\'s attention to a particular area of the dashboard — e.g. "Stock Health", "At-Risk Products", or "Agent Activity".',
+    inputSchema: toJsonSchema(
+      z.object({
+        headingText: z.string().optional().describe('Heading text to scroll to (e.g. "Stock Health")'),
+        elementId: z.string().optional().describe('DOM element ID to scroll to'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Scroll to a section of the page',
+    },
+    readOnly: true,
+    run: async (input) => {
+      let target: Element | null = null
+      if (input.elementId) {
+        target = document.getElementById(input.elementId)
+      } else if (input.headingText) {
+        const headings = document.querySelectorAll('h1, h2, h3, h4')
+        for (const h of headings) {
+          if (h.textContent?.toLowerCase().includes(input.headingText.toLowerCase())) {
+            target = h
+            break
+          }
+        }
+      }
+      if (!target) {
+        return {
+          summary: `Could not find section: ${input.elementId ?? input.headingText}`,
+          payload: { scrolled: false, error: 'Section not found' },
+        }
+      }
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return { summary: `Scrolled to ${input.elementId ?? input.headingText}`, payload: { scrolled: true } }
+    },
+  },
+]
+
 const COLLABORATE_TOOLS: ToolDef[] = [
   {
     name: 'get_pending_agent_actions',
@@ -893,7 +992,7 @@ const COLLABORATE_TOOLS: ToolDef[] = [
   },
 ]
 
-const TOOLS: ToolDef[] = [...READ_TOOLS, ...ANALYZE_TOOLS, ...CREATE_TOOLS, ...MUTATE_TOOLS, ...COLLABORATE_TOOLS]
+const TOOLS: ToolDef[] = [...READ_TOOLS, ...ANALYZE_TOOLS, ...CREATE_TOOLS, ...MUTATE_TOOLS, ...NAVIGATE_TOOLS, ...COLLABORATE_TOOLS]
 
 export interface ToolCatalogEntry {
   name: string
@@ -907,6 +1006,7 @@ export const TOOL_CATALOG: Array<{ category: string; tools: ToolCatalogEntry[] }
   { category: 'ANALYZE', tools: ANALYZE_TOOLS },
   { category: 'CREATE', tools: CREATE_TOOLS },
   { category: 'MUTATE', tools: MUTATE_TOOLS },
+  { category: 'NAVIGATE', tools: NAVIGATE_TOOLS },
   { category: 'COLLABORATE', tools: COLLABORATE_TOOLS },
 ].map(({ category, tools }) => ({
   category,
@@ -1007,7 +1107,7 @@ export async function registerInventoryWebMCPTools(): Promise<() => void> {
 
   return () => {
     controller.abort()
-    registered = false
+    registered = false // Allow re-registration (StrictMode re-mount, HMR)
   }
 }
 

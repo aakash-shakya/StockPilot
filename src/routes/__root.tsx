@@ -56,6 +56,45 @@ function RootComponent() {
     return () => sub.unsubscribe()
   }, [router])
 
+  // Handle WebMCP UI manipulation events from agent tools
+  useEffect(() => {
+    const handleNavigate = (e: Event) => {
+      const { path } = (e as CustomEvent).detail
+      if (path) router.navigate({ to: path })
+    }
+    const handleHighlight = (e: Event) => {
+      const { productId, durationMs = 4000 } = (e as CustomEvent).detail
+      const el = document.querySelector(`[data-product-id="${productId}"]`)
+      if (el) {
+        el.classList.add('ring-2', 'ring-emerald-400', 'ring-offset-2', 'animate-pulse')
+        setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-400', 'ring-offset-2', 'animate-pulse'), durationMs)
+      }
+    }
+    const handleScroll = (e: Event) => {
+      const { headingText, elementId } = (e as CustomEvent).detail
+      let target: Element | null = null
+      if (elementId) {
+        target = document.getElementById(elementId)
+      } else if (headingText) {
+        for (const h of document.querySelectorAll('h1, h2, h3, h4')) {
+          if (h.textContent?.toLowerCase().includes(headingText.toLowerCase())) {
+            target = h
+            break
+          }
+        }
+      }
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    window.addEventListener('agent:navigate', handleNavigate)
+    window.addEventListener('agent:highlight', handleHighlight)
+    window.addEventListener('agent:scroll', handleScroll)
+    return () => {
+      window.removeEventListener('agent:navigate', handleNavigate)
+      window.removeEventListener('agent:highlight', handleHighlight)
+      window.removeEventListener('agent:scroll', handleScroll)
+    }
+  }, [router])
+
   if (isAuthPage) {
     return (
       <div className="min-h-screen bg-gray-50">

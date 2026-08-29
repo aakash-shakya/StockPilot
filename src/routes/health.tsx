@@ -64,7 +64,8 @@ function HealthPage() {
         {worryAbout.items.map((item, idx) => (
           <div
             key={idx}
-            className="panel p-4 flex items-center justify-between gap-4"
+            data-product-id={item.productId}
+            className="panel p-4 flex items-center justify-between gap-4 transition-all duration-300"
           >
             <div className="flex items-start gap-3 min-w-0">
               <span className="text-xs font-mono bg-slate-100 text-slate-600 w-6 h-6 rounded-full flex items-center justify-center shrink-0">{idx + 1}</span>
@@ -159,7 +160,7 @@ function HealthPage() {
           </thead>
           <tbody>
             {deadStock.map((d) => (
-              <tr key={d.productId} className="border-b border-slate-50 last:border-0 hover:bg-amber-50/20">
+              <tr key={d.productId} data-product-id={d.productId} className="border-b border-slate-50 last:border-0 hover:bg-amber-50/20 transition-all duration-300">
                 <td className="px-5 py-3">
                   <Link to="/products/$productId" params={{ productId: String(d.productId) }} className="font-medium text-slate-900 hover:text-blue-600">
                     {d.name}
