@@ -61,9 +61,29 @@ export const Route = createRootRoute({
     }
     return { user }
   },
+  pendingComponent: RootLoading,
   shellComponent: RootDocument,
   component: RootComponent,
 })
+
+function RootLoading() {
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-surface-sunken)' }}>
+      <div className="flex flex-col items-center gap-3">
+        <div
+          className="w-8 h-8 rounded-lg animate-pulse"
+          style={{ backgroundColor: 'var(--color-ink)' }}
+        />
+        <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: 'var(--color-border)' }}>
+          <div
+            className="h-full rounded-full animate-[shimmer_1.5s_ease-in-out_infinite]"
+            style={{ backgroundColor: 'var(--color-accent)', width: '40%' }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function RootComponent() {
   const router = useRouter()
