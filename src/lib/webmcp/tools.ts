@@ -25,6 +25,7 @@ import {
   forecastDemandSchema,
   generateReportSchema,
   generateReportFn,
+  generateReportCsvFn,
   generateSkuSchema,
   generateSkuFn,
   getEmergencyImpactSchema,
@@ -35,11 +36,13 @@ import {
   getInventoryMovementsSchema,
   getInventoryMovementsFn,
   getInventorySummaryFn,
+  getMissionStatusFn,
   getMorningBriefingFn,
   getProductDetailsSchema,
   getProductDetailsFn,
   getPurchaseOrdersSchema,
   getPurchaseOrdersFn,
+  getRecentAgentActivityFn,
   getSalesVelocitySchema,
   getSalesVelocityFn,
   getSupplierIntelligenceSchema,
@@ -137,7 +140,7 @@ const READ_TOOLS: ToolDef[] = [
     name: 'search_products',
     title: 'Search products',
     description:
-      'Search the product catalog by name or SKU, optionally filtered by category. Use this to find a specific product before inspecting or acting on it.',
+      'Search the product catalog by name or SKU, optionally filtered by category. Use this for targeted lookups by exact name or SKU. For natural-language questions like "what electronics are running low", use query_inventory instead.',
     inputSchema: toJsonSchema(searchProductsSchema),
     annotations: {
       readOnlyHint: true,
@@ -179,7 +182,7 @@ const READ_TOOLS: ToolDef[] = [
     name: 'find_low_stock',
     title: 'Find low stock',
     description:
-      'Find products that are at or below their reorder threshold, or projected to run out within a given number of days based on recent sales velocity. This is the starting point for any "what will run out" investigation.',
+      'Find products that are at or below their reorder threshold, or projected to run out within a given number of days. Returns a flat list without trend analysis — for velocity trends and risk explanations, use analyze_stock_risk instead.',
     inputSchema: toJsonSchema(findLowStockSchema),
     outputSchema: { type: 'object', properties: {}, additionalProperties: true },
     annotations: {
@@ -286,6 +289,63 @@ const READ_TOOLS: ToolDef[] = [
     run: async () => {
       const rows = await getSuppliersFn()
       return { summary: `${rows.length} supplier(s)`, payload: rows }
+    },
+  },
+  {
+    name: 'get_mission_status',
+    title: 'Get 30-day health mission status',
+    description:
+      'Get progress on the 30-Day Inventory Health mission: current health score, baseline score, target score, progress percentage, days remaining, and the list of completed milestones. Use this to track whether the shop is on track to meet its health goals.',
+    inputSchema: toJsonSchema(whatShouldIWorryAboutSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get 30-day health mission status',
+    },
+    readOnly: true,
+    run: async () => {
+      const result = await getMissionStatusFn()
+      return { summary: `Mission "${result.title}": ${result.percentComplete}% complete (${result.completedCount}/${result.totalCount} tasks)`, payload: result }
+    },
+  },
+  {
+    name: 'get_recent_agent_activity',
+    title: 'Get recent agent activity',
+    description:
+      'List the most recent WebMCP tool calls made by the agent in this session, with tool name, input, summary, timestamp, and estimated token cost. Use this to review what the agent has done so far.',
+    inputSchema: toJsonSchema(z.object({ limit: z.number().int().min(1).max(50).optional().describe('Max rows to return (default 20)') })),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get recent agent activity',
+    },
+    readOnly: true,
+    run: async (input) => {
+      const rows = await getRecentAgentActivityFn({ data: input })
+      return { summary: `${rows.length} recent tool call(s)`, payload: rows }
+    },
+  },
+  {
+    name: 'generate_report_csv',
+    title: 'Generate a report as CSV',
+    description:
+      'Generate a structured report and return it as a downloadable CSV string. Same report types as generate_report: monthly inventory, declining sales, supplier performance, cash tied up. Use this when the user wants to download or export data.',
+    inputSchema: toJsonSchema(generateReportSchema),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Generate a report as CSV',
+    },
+    readOnly: true,
+    run: async (input) => {
+      const result = await generateReportCsvFn({ data: input })
+      return { summary: `CSV report "${result.title}" generated (${result.csv.split('\n').length} rows)`, payload: result }
     },
   },
 ]
@@ -397,7 +457,7 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'get_inventory_health_check',
     title: 'Run inventory health check',
     description:
-      'Run a full sweep across low stock, stockouts, dead stock, abnormal sales changes, supplier delays, overdue purchase orders, high-value risk concentration, and single-supplier concentration risk. Returns every issue found, each with a severity and a recommended next action.',
+      'Run a full diagnostic sweep: low stock, stockouts, dead stock, abnormal sales changes, supplier delays, overdue POs, risk concentration, and single-supplier dependency. Returns every issue found with severity and recommended action. Use this for a raw diagnostic view; for a prioritized briefing, use what_should_i_worry_about.',
     inputSchema: toJsonSchema(getInventoryHealthCheckSchema),
     annotations: {
       readOnlyHint: true,
@@ -419,7 +479,7 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'what_should_i_worry_about',
     title: 'What should I worry about today?',
     description:
-      'Get a single prioritized operational briefing: pending agent approvals first, then the highest-severity inventory health issues. This is the recommended first call when starting a session.',
+      'Get a single prioritized operational briefing: pending agent approvals first, then the highest-severity inventory health issues. Use this for a quick actionable summary. For the full dashboard readout with health score, budget, and supplier alerts, use get_morning_briefing instead.',
     inputSchema: toJsonSchema(whatShouldIWorryAboutSchema),
     annotations: {
       readOnlyHint: true,
@@ -484,7 +544,7 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'query_inventory',
     title: 'Query inventory in natural language',
     description:
-      'Convert a natural-language inventory question (e.g. "what electronics are running out in the next 5 days") into structured filters and return matching products. Parsing is deterministic and rule-based; the parsed filters are always returned alongside the results so the interpretation is visible.',
+      'Convert a natural-language inventory question (e.g. "what electronics are running out in the next 5 days") into structured filters and return matching products. Parsing is deterministic and rule-based. Use this for free-form questions. For targeted lookups by exact name or SKU, use search_products instead.',
     inputSchema: toJsonSchema(queryInventorySchema),
     annotations: {
       readOnlyHint: true,
@@ -503,7 +563,7 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'generate_report',
     title: 'Generate a report',
     description:
-      'Generate a structured report from a natural-language request. Supports monthly inventory summaries, declining-sales reports, supplier-performance reports, and cash-tied-up-in-inventory reports — each with KPIs, a data table, findings, and recommendations. Report interpretation is deterministic and rule-based, returned as part of the result.',
+      'Generate a structured report from a natural-language request. Supported types: monthly inventory summary, declining-sales report, supplier-performance report, cash-tied-up-in-inventory report. Any unrecognized request defaults to monthly inventory. If you need a different report type, compose the answer from primitive tools (search_products, get_inventory_summary, etc.) instead.',
     inputSchema: toJsonSchema(generateReportSchema),
     annotations: {
       readOnlyHint: true,
@@ -617,7 +677,7 @@ const CREATE_TOOLS: ToolDef[] = [
     name: 'generate_sku',
     title: 'Generate a SKU',
     description:
-      'Deterministically generate a unique CATEGORY-BRAND-MODEL[-VARIANT] SKU (not an LLM guess) from product attributes, checked against existing SKUs for collisions. Use this before generate_product if you only need the code itself.',
+      'Deterministically generate a unique CATEGORY-BRAND-MODEL[-VARIANT] SKU from product attributes, checked against existing SKUs for collisions. Rarely needed — generate_product creates the SKU automatically. Only use if you need a SKU code without drafting a full product.',
     inputSchema: toJsonSchema(generateSkuSchema),
     annotations: {
       readOnlyHint: true,
@@ -1019,9 +1079,9 @@ const DEMO_PROMPT = {
   name: 'protect_my_inventory',
   title: 'Protect My Inventory',
   description:
-    'Run a full inventory protection workflow: morning briefing → identify risks → build a budget-aware replenishment plan → propose purchase orders for approval. Say "protect my inventory with a $3000 budget" to start.',
+    'Run a complete morning protection check: assess inventory health, identify items at risk of stockout, build a prioritized replenishment plan within your budget, and file purchase orders for your approval. Covers 5 minutes of manual analysis in one command.',
   arguments: [
-    { name: 'budget', description: 'Max purchasing budget in dollars (e.g. 3000)', required: false },
+    { name: 'budget', description: 'Max purchasing budget in cents (e.g. 50000 for $500)', required: false },
   ],
 }
 
