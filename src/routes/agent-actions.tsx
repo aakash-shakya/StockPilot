@@ -4,6 +4,8 @@ import { Sparkles } from 'lucide-react'
 import { createReplenishmentProposalsFn, decideAgentActionFn, listAgentActionsFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 import { ActionStatusBadge, ImpactBadge } from '../components/badges.js'
+import { Button } from '../components/ui/Button.js'
+import { Badge } from '../components/ui/Badge.js'
 
 export const Route = createFileRoute('/agent-actions')({
   component: AgentActionsPage,
@@ -50,28 +52,29 @@ function AgentActionsPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Agent Actions</h1>
+          <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>Agent Actions</h1>
           <p className="text-sm text-gray-500 mt-1">
             Consequential actions proposed by agents. Nothing executes until approved.
           </p>
         </div>
-        <button
+        <Button
+          variant="primary"
+          size="md"
           onClick={runReplenishment}
           disabled={runningReplenishment}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50 shrink-0"
+          icon={<Sparkles className="w-4 h-4" />}
         >
-          <Sparkles className="w-4 h-4" />
           {runningReplenishment ? 'Building plan…' : 'Run Smart Replenishment'}
-        </button>
+        </Button>
       </div>
 
       {message && (
         <div className="mb-6 text-sm bg-blue-50 text-blue-700 px-4 py-2.5 rounded-lg border border-blue-100">{message}</div>
       )}
 
-      <h2 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+      <h2 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>
         <span className="w-1 h-4 bg-amber-500 rounded-full" />
-        Pending <span className="bg-amber-500 text-white px-2 py-0.5 rounded-full text-xs font-bold">{pending.length}</span>
+        Pending <Badge variant="amber">{pending.length}</Badge>
       </h2>
       {pending.length === 0 ? (
         <p className="text-sm text-gray-400 mb-8">Nothing waiting on you.</p>
@@ -94,20 +97,22 @@ function AgentActionsPage() {
                   <p className="text-sm text-gray-500">{action.reasoning}</p>
                 </div>
                 <div className="flex gap-2 shrink-0">
-                  <button
+                  <Button
+                    variant="accent"
+                    size="sm"
                     onClick={() => decide(action.id, 'approved')}
                     disabled={busyId === action.id}
-                    className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
                     Approve
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => decide(action.id, 'rejected')}
                     disabled={busyId === action.id}
-                    className="px-3 py-1.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 disabled:opacity-50"
                   >
                     Reject
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -115,9 +120,9 @@ function AgentActionsPage() {
         </div>
       )}
 
-      <h2 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2">
+      <h2 className="text-sm font-semibold text-slate-900 mb-3 flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)' }}>
         <span className="w-1 h-4 bg-slate-700 rounded-full" />
-        History <span className="bg-slate-900 text-white px-2 py-0.5 rounded-full text-xs font-bold">{decided.length}</span>
+        History <Badge variant="default">{decided.length}</Badge>
       </h2>
       {decided.length === 0 ? (
         <p className="text-sm text-gray-400">No decided actions yet.</p>
@@ -129,7 +134,7 @@ function AgentActionsPage() {
           <div className="overflow-x-auto scrollbar-none">
             <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-gray-100">
+              <tr className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider border-b border-[var(--color-border)]">
                 <th className="px-5 py-3">Title</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Impact</th>

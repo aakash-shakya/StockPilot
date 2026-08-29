@@ -72,20 +72,27 @@ export async function createSession(userId: number): Promise<{ token: string; ex
 
 export async function validateSessionToken(token: string): Promise<SafeUser | null> {
   if (!token) return null
-  const [session] = await db.select().from(sessions).where(eq(sessions.token, token))
-  if (!session) return null
-  if (session.expiresAt < new Date()) {
-    await db.delete(sessions).where(eq(sessions.token, token))
+  try {
+    const [session] = await db.select().from(sessions).where(eq(sessions.token, token))
+    if (!session) return null
+
+    const expiresAt = session.expiresAt instanceof Date ? session.expiresAt : new Date(session.expiresAt)
+    if (expiresAt < new Date()) {
+      await db.delete(sessions).where(eq(sessions.token, token))
+      return null
+    }
+    // extend if within 3 days of expiry
+    const threeDays = 3 * 86400000
+    if (expiresAt.getTime() - Date.now() < threeDays) {
+      const newExpires = new Date(Date.now() + SESSION_MAX_AGE_DAYS * 86400000)
+      await db.update(sessions).set({ expiresAt: newExpires }).where(eq(sessions.token, token))
+    }
+    const user = await findUserById(session.userId)
+    return user
+  } catch (err) {
+    console.error('[auth] validateSessionToken failed:', err)
     return null
   }
-  // extend if within 3 days of expiry
-  const threeDays = 3 * 86400000
-  if (session.expiresAt.getTime() - Date.now() < threeDays) {
-    const newExpires = new Date(Date.now() + SESSION_MAX_AGE_DAYS * 86400000)
-    await db.update(sessions).set({ expiresAt: newExpires }).where(eq(sessions.token, token))
-  }
-  const user = await findUserById(session.userId)
-  return user
 }
 
 export async function deleteSession(token: string) {

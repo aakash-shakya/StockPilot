@@ -2,11 +2,12 @@ import { type ButtonHTMLAttributes, type ReactNode, forwardRef } from 'react'
 import { cn } from '../../lib/cn.js'
 
 const variants = {
-  primary: 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm ring-1 ring-slate-900/10',
-  secondary: 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 hover:border-slate-300 shadow-sm',
-  ghost: 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+  primary: 'bg-[var(--color-ink)] text-white hover:bg-[#1f2937] shadow-sm ring-1 ring-black/10',
+  secondary: 'bg-white text-[var(--color-ink-secondary)] border border-[var(--color-border)] hover:bg-[var(--color-surface-sunken)] hover:border-[var(--color-border-strong)] shadow-sm',
+  ghost: 'text-[var(--color-ink-secondary)] hover:bg-[var(--color-surface-sunken)] hover:text-[var(--color-ink)]',
   danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm ring-1 ring-red-600/20',
   success: 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm ring-1 ring-emerald-600/20',
+  accent: 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] shadow-sm ring-1 ring-cyan-600/20',
 }
 
 const sizes = {
@@ -30,12 +31,14 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       disabled={disabled}
       className={cn(
         'inline-flex items-center justify-center font-medium transition-all duration-150',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] focus-visible:ring-offset-2',
         'disabled:opacity-50 disabled:pointer-events-none',
+        'active:scale-[0.98]',
         variants[variant],
         sizes[size],
         className,
       )}
+      style={{ fontFamily: 'var(--font-body)' }}
       {...props}
     >
       {icon}

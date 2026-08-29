@@ -47,7 +47,12 @@ export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
     const publicPaths = ['/login', '/register']
     const isPublic = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'))
-    const user = await getCurrentUserFn()
+    let user = null
+    try {
+      user = await getCurrentUserFn()
+    } catch (err) {
+      console.error('[root] getCurrentUserFn failed, treating as logged out:', err)
+    }
     if (!user && !isPublic) {
       throw redirect({ to: '/login' })
     }
@@ -56,17 +61,13 @@ export const Route = createRootRoute({
     }
     return { user }
   },
-  loader: async () => {
-    const user = await getCurrentUserFn()
-    return { user }
-  },
   shellComponent: RootDocument,
   component: RootComponent,
 })
 
 function RootComponent() {
   const router = useRouter()
-  const { user } = Route.useLoaderData()
+  const { user } = Route.useRouteContext()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isAuthPage = pathname === '/login' || pathname === '/register'
 
@@ -118,14 +119,14 @@ function RootComponent() {
 
   if (isAuthPage) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-surface-sunken)' }}>
         <Outlet />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-surface-sunken)' }}>
       <ToastProvider>
         <Nav user={user} />
         <Outlet />

@@ -3,6 +3,8 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { ArrowLeft, CheckCircle2, Sparkles } from 'lucide-react'
 import { createProductFromDraftFn, draftProductFn, getSuppliersFn, getInventorySummaryFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
+import { Button } from '../components/ui/Button.js'
+import { Card } from '../components/ui/Card.js'
 
 export const Route = createFileRoute('/products/new')({
   component: NewProductPage,
@@ -88,7 +90,7 @@ function NewProductPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
         <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto mb-3" />
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">{created.name} created</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1" style={{ fontFamily: 'var(--font-heading)' }}>{created.name} created</h1>
         <p className="text-sm text-gray-500 mb-6">SKU {created.sku} is now live in the catalog.</p>
         <Link to="/products/$productId" params={{ productId: String(created.id) }} className="text-sm font-medium text-blue-600 hover:text-blue-700">
           View product →
@@ -103,7 +105,7 @@ function NewProductPage() {
         <ArrowLeft className="w-3 h-3" /> Products
       </Link>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">New Product</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-1" style={{ fontFamily: 'var(--font-heading)' }}>New Product</h1>
         <p className="text-sm text-gray-500">SKU is generated deterministically from category, brand, model, and variant.</p>
       </div>
 
@@ -112,13 +114,13 @@ function NewProductPage() {
       )}
 
       {!draft ? (
-        <div className="panel panel-shadow p-5 space-y-4">
+        <Card className="p-5 space-y-4">
           <Field label="Product name">
-            <input value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="Wireless Mouse Pro" />
+            <input value={name} onChange={(e) => setName(e.target.value)} className="input" placeholder="Wireless Mouse Pro" style={{ fontFamily: 'var(--font-body)' }} />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Category">
-              <input value={category} onChange={(e) => setCategory(e.target.value)} className="input" list="category-options" placeholder="Electronics" />
+              <input value={category} onChange={(e) => setCategory(e.target.value)} className="input" list="category-options" placeholder="Electronics" style={{ fontFamily: 'var(--font-body)' }} />
               <datalist id="category-options">
                 {categories.map((c) => (
                   <option key={c} value={c} />
@@ -126,19 +128,19 @@ function NewProductPage() {
               </datalist>
             </Field>
             <Field label="Brand">
-              <input value={brand} onChange={(e) => setBrand(e.target.value)} className="input" placeholder="Logitech" />
+              <input value={brand} onChange={(e) => setBrand(e.target.value)} className="input" placeholder="Logitech" style={{ fontFamily: 'var(--font-body)' }} />
             </Field>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Model">
-              <input value={model} onChange={(e) => setModel(e.target.value)} className="input" placeholder="MX4" />
+              <input value={model} onChange={(e) => setModel(e.target.value)} className="input" placeholder="MX4" style={{ fontFamily: 'var(--font-body)' }} />
             </Field>
             <Field label="Variant (optional)">
-              <input value={variant} onChange={(e) => setVariant(e.target.value)} className="input" placeholder="Black" />
+              <input value={variant} onChange={(e) => setVariant(e.target.value)} className="input" placeholder="Black" style={{ fontFamily: 'var(--font-body)' }} />
             </Field>
           </div>
           <Field label="Supplier">
-            <select value={supplierId} onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')} className="input">
+            <select value={supplierId} onChange={(e) => setSupplierId(e.target.value ? Number(e.target.value) : '')} className="input" style={{ fontFamily: 'var(--font-body)' }}>
               <option value="">Select a supplier…</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -149,27 +151,26 @@ function NewProductPage() {
           </Field>
           <div className="grid grid-cols-3 gap-4">
             <Field label="Cost ($)">
-              <input type="number" min="0" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} className="input" />
+              <input type="number" min="0" step="0.01" value={cost} onChange={(e) => setCost(e.target.value)} className="input" style={{ fontFamily: 'var(--font-body)' }} />
             </Field>
             <Field label="Price ($)">
-              <input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="input" />
+              <input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} className="input" style={{ fontFamily: 'var(--font-body)' }} />
             </Field>
             <Field label="Initial quantity">
-              <input type="number" min="0" value={initialQuantity} onChange={(e) => setInitialQuantity(e.target.value)} className="input" />
+              <input type="number" min="0" value={initialQuantity} onChange={(e) => setInitialQuantity(e.target.value)} className="input" style={{ fontFamily: 'var(--font-body)' }} />
             </Field>
           </div>
-          <button
+          <Button
             onClick={() => void handleDraft()}
             disabled={!canDraft || drafting}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-800 disabled:opacity-50"
           >
             <Sparkles className="w-4 h-4" />
             {drafting ? 'Generating…' : 'Generate SKU & preview'}
-          </button>
-        </div>
+          </Button>
+        </Card>
       ) : (
-        <div className="panel panel-shadow p-5">
-          <h2 className="text-sm font-semibold text-gray-900 mb-1">Review before creating</h2>
+        <Card className="p-5">
+          <h2 className="text-sm font-semibold text-gray-900 mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Review before creating</h2>
           <p className="text-xs text-gray-400 mb-4">Nothing has been saved yet.</p>
           <dl className="grid grid-cols-2 gap-y-2.5 text-sm mb-6">
             <dt className="text-gray-400 text-xs">SKU</dt>
@@ -188,18 +189,17 @@ function NewProductPage() {
             <dd className="text-gray-900">{draft.reorderThreshold}</dd>
           </dl>
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={() => void handleConfirm()}
               disabled={creating}
-              className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
             >
               {creating ? 'Creating…' : 'Confirm & create'}
-            </button>
+            </Button>
             <button onClick={() => setDraft(null)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">
               Edit
             </button>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   )

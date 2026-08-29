@@ -24,7 +24,7 @@ export function AgentActivityPanel() {
 
   return (
     <div className="fixed bottom-4 right-4 z-50 w-80 max-w-[calc(100vw-2rem)]">
-      <div className="bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+      <div style={{ backgroundColor: 'var(--color-surface)' }} className="border border-[var(--color-border)] rounded-xl shadow-xl overflow-hidden">
         {/* Header */}
         <button
           onClick={() => setOpen((v) => !v)}
@@ -61,7 +61,7 @@ export function AgentActivityPanel() {
             >
               <div className="max-h-80 overflow-y-auto">
                 {entries.length === 0 && (
-                  <p className="px-4 py-8 text-sm text-slate-400 text-center">
+                  <p style={{ fontFamily: 'var(--font-body)' }} className="px-4 py-8 text-sm text-slate-400 text-center">
                     No activity yet. Connect a WebMCP agent to see tool calls here.
                   </p>
                 )}
@@ -75,9 +75,9 @@ export function AgentActivityPanel() {
                       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
                       className="overflow-hidden"
                     >
-                      <div className="px-4 py-2.5 text-sm border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
+                      <div style={{ fontFamily: 'var(--font-body)' }} className="px-4 py-2.5 text-sm border-b border-[var(--color-border)] last:border-0 hover:bg-slate-50/50 transition-colors">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="font-medium text-slate-900 truncate">{e.title}</span>
+                          <span style={{ fontFamily: 'var(--font-heading)' }} className="font-medium text-slate-900 truncate">{e.title}</span>
                           {statusIcon(e.status)}
                         </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
@@ -89,7 +89,7 @@ export function AgentActivityPanel() {
                           <span className="text-[11px] text-slate-400">{timeAgo(e.createdAt)}</span>
                         </div>
                         {e.detail && (
-                          <p className="mt-1 text-xs text-slate-500 break-words leading-relaxed">{e.detail}</p>
+                          <p style={{ fontFamily: 'var(--font-body)' }} className="mt-1 text-xs text-slate-500 break-words leading-relaxed">{e.detail}</p>
                         )}
                       </div>
                     </motion.div>
