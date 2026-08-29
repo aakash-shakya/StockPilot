@@ -138,6 +138,12 @@ a, button {
   --tw-ring-color: var(--color-accent);
 }
 
+/* Shimmer loading animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
