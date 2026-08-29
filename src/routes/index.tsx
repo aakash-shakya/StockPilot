@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ArrowRight, Boxes, HeartPulse, ShieldCheck, Trophy } from 'lucide-react'
+import { ArrowRight, Boxes, CheckCircle2, HeartPulse, ShieldCheck, Trophy } from 'lucide-react'
 import {
   findLowStockFn,
   getInventorySummaryFn,
@@ -11,6 +11,10 @@ import {
 } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 import { RiskBadge, TrendLabel, PoStatusBadge, SeverityBadge } from '../components/badges.js'
+import { Card, CardContent } from '../components/ui/Card.js'
+import { Button } from '../components/ui/Button.js'
+import { Badge } from '../components/ui/Badge.js'
+import { NumberAnimation } from '../components/ui/NumberAnimation.js'
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
@@ -41,43 +45,49 @@ function Dashboard() {
         </p>
       </div>
 
-      {/* KPI bar — single row, no card mosaic */}
-      <div className="panel overflow-hidden mb-8 divide-y-0">
-        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-200">
+      {/* KPI bar */}
+      <Card className="mb-8 overflow-hidden">
+        <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-slate-100">
           <div className="px-5 py-4">
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Products</p>
-            <p className="text-2xl font-bold text-slate-900 tracking-tight mt-1 tabular-nums">{summary.totalProducts}</p>
+            <p className="text-2xl font-bold text-slate-900 tracking-tight mt-1 tabular-nums">
+              <NumberAnimation value={summary.totalProducts} />
+            </p>
             <p className="text-[11px] text-slate-500 mt-0.5">{summary.totalUnits} units on hand</p>
           </div>
           <div className="px-5 py-4">
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-red-500" /> Critical
             </p>
-            <p className="text-2xl font-bold text-red-600 tracking-tight mt-1 tabular-nums">{summary.criticalCount}</p>
+            <p className="text-2xl font-bold text-red-600 tracking-tight mt-1 tabular-nums">
+              <NumberAnimation value={summary.criticalCount} />
+            </p>
             <p className="text-[11px] text-slate-500 mt-0.5">≤2 days of stock left</p>
           </div>
           <div className="px-5 py-4">
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-amber-500" /> Warning
             </p>
-            <p className="text-2xl font-bold text-amber-600 tracking-tight mt-1 tabular-nums">{summary.warningCount}</p>
+            <p className="text-2xl font-bold text-amber-600 tracking-tight mt-1 tabular-nums">
+              <NumberAnimation value={summary.warningCount} />
+            </p>
             <p className="text-[11px] text-slate-500 mt-0.5">below reorder point</p>
           </div>
           <div className="px-5 py-4">
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Avg. Coverage</p>
             <p className="text-2xl font-bold text-slate-900 tracking-tight mt-1 tabular-nums">
-              {summary.avgCoverageDays !== null ? `${summary.avgCoverageDays}d` : '—'}
+              {summary.avgCoverageDays !== null ? <>{summary.avgCoverageDays}<span className="text-sm font-medium text-slate-500">d</span></> : '—'}
             </p>
             <p className="text-[11px] text-slate-500 mt-0.5">across all products</p>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        {/* Worry about - elevated with header */}
-        <div className="lg:col-span-2 panel panel-shadow overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 card-header-red">
+        {/* Worry about */}
+        <Card className="lg:col-span-2 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-red-500 flex items-center justify-center shadow-sm ring-1 ring-red-600/20">
                 <HeartPulse className="w-4 h-4 text-white" />
@@ -87,53 +97,57 @@ function Dashboard() {
                 <p className="text-xs text-slate-500">{worryAbout.summary}</p>
               </div>
             </div>
-            <Link to="/health" className="text-xs font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 hover:border-blue-200 shadow-sm">
-              Full check <ArrowRight className="w-3 h-3" />
+            <Link to="/health">
+              <Button variant="secondary" size="xs">
+                Full check <ArrowRight className="w-3 h-3" />
+              </Button>
             </Link>
           </div>
-          <div className="p-4">
+          <CardContent>
             {worryAbout.items.length === 0 ? (
               <div className="text-center py-10">
                 <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <span className="text-emerald-600 text-lg">✓</span>
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
                 </div>
                 <p className="text-sm text-slate-500">All clear — nothing to worry about.</p>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 {worryAbout.items.slice(0, 4).map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between gap-3 text-sm py-2.5 px-3 rounded-xl border border-transparent hover:border-slate-200 hover:bg-slate-50/70">
+                  <div key={idx} className="flex items-center justify-between gap-3 text-sm py-2.5 px-3 rounded-xl border border-transparent hover:border-slate-200 hover:bg-slate-50/70 transition-colors">
                     <p className="text-slate-700">{item.description}</p>
                     <SeverityBadge severity={item.severity} />
                   </div>
                 ))}
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Agent Actions + Mission */}
         <div className="space-y-4">
-          <div className="panel panel-shadow overflow-hidden">
-            <div className="px-5 py-3.5 card-header-blue flex items-center justify-between">
+          <Card className="overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center shadow-sm ring-1 ring-blue-700/15">
                   <ShieldCheck className="w-4 h-4 text-white" />
                 </div>
                 <h2 className="text-sm font-semibold text-slate-900">Agent Actions</h2>
               </div>
-              <Link to="/agent-actions" className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-blue-200 hover:border-blue-300 shadow-sm">
-                Review →
+              <Link to="/agent-actions">
+                <Button variant="secondary" size="xs">Review →</Button>
               </Link>
             </div>
-            <div className="p-5 bg-gradient-to-br from-blue-50/20 to-white">
-              <p className="text-3xl font-bold text-slate-900 mb-1 tracking-tight">{pendingActions.length}</p>
+            <CardContent className="bg-gradient-to-br from-blue-50/20 to-white">
+              <p className="text-3xl font-bold text-slate-900 mb-1 tracking-tight">
+                <NumberAnimation value={pendingActions.length} />
+              </p>
               <p className="text-xs text-slate-500 font-medium">pending your approval</p>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div className="panel panel-shadow overflow-hidden">
-            <div className="p-5 bg-gradient-to-br from-violet-50/60 to-white">
+          <Card className="overflow-hidden">
+            <CardContent className="bg-gradient-to-br from-violet-50/60 to-white">
               <div className="flex items-center gap-3 mb-3.5">
                 <div className="w-8 h-8 rounded-xl bg-violet-600 flex items-center justify-center shadow-sm ring-1 ring-violet-700/15">
                   <Trophy className="w-4 h-4 text-white" />
@@ -145,142 +159,151 @@ function Dashboard() {
               </div>
               <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden ring-1 ring-inset ring-slate-200/50">
                 <div
-                  className="h-full bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full transition-all duration-700 ease-out"
                   style={{ width: `${mission.percentComplete}%` }}
                 />
               </div>
               <p className="text-xs text-violet-700 font-semibold mt-2.5">{mission.percentComplete}% complete</p>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
       {/* At risk + Purchase orders */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 panel panel-shadow overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-4 card-header-amber">
+        <Card className="lg:col-span-2 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
             <div>
               <h2 className="text-sm font-semibold text-slate-900">At risk of stocking out</h2>
               <p className="text-xs text-slate-500 mt-0.5">Within 7 days based on current velocity</p>
             </div>
-            <Link to="/products" className="text-xs font-medium text-slate-600 hover:text-slate-900 flex items-center gap-1 bg-white px-2.5 py-1 rounded-lg border border-slate-200">
-              All products <ArrowRight className="w-3 h-3" />
+            <Link to="/products">
+              <Button variant="ghost" size="xs">
+                All products <ArrowRight className="w-3 h-3" />
+              </Button>
             </Link>
           </div>
           {atRisk.length === 0 ? (
             <div className="px-5 py-12 text-center">
               <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                <span className="text-emerald-600 text-lg">✓</span>
+                <CheckCircle2 className="w-6 h-6 text-emerald-600" />
               </div>
               <p className="text-sm text-slate-500">Everything looks healthy for the next 7 days.</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100 bg-slate-50/40">
-                  <th className="px-5 py-3">Product</th>
-                  <th className="px-5 py-3">Stock</th>
-                  <th className="px-5 py-3">Coverage</th>
-                  <th className="px-5 py-3">Trend</th>
-                  <th className="px-5 py-3">Risk</th>
-                </tr>
-              </thead>
-              <tbody>
-                {atRisk.map((p) => (
-                  <tr key={p.productId} data-product-id={p.productId} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-all duration-300">
-                    <td className="px-5 py-3.5">
-                      <Link to="/products/$productId" params={{ productId: String(p.productId) }} className="font-medium text-slate-900 hover:text-blue-600">
-                        {p.name}
-                      </Link>
-                      <div className="text-xs text-slate-400 font-mono">{p.sku}</div>
-                    </td>
-                    <td className="px-5 py-3.5 font-semibold text-slate-900">{p.quantity}</td>
-                    <td className="px-5 py-3.5 text-slate-600">{p.coverageDays !== null ? `${p.coverageDays}d` : '—'}</td>
-                    <td className="px-5 py-3.5">
-                      <TrendLabel trend={p.trend} />
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <RiskBadge level={p.riskLevel} />
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs font-semibold text-slate-500 uppercase tracking-wider border-b border-slate-100 bg-slate-50/50">
+                    <th className="px-5 py-3">Product</th>
+                    <th className="px-5 py-3">Stock</th>
+                    <th className="px-5 py-3">Coverage</th>
+                    <th className="px-5 py-3">Trend</th>
+                    <th className="px-5 py-3">Risk</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {atRisk.map((p) => (
+                    <tr key={p.productId} data-product-id={p.productId} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <Link to="/products/$productId" params={{ productId: String(p.productId) }} className="font-medium text-slate-900 hover:text-blue-600 transition-colors">
+                          {p.name}
+                        </Link>
+                        <div className="text-xs text-slate-400 font-mono">{p.sku}</div>
+                      </td>
+                      <td className="px-5 py-3.5 font-semibold text-slate-900 tabular-nums">{p.quantity}</td>
+                      <td className="px-5 py-3.5 text-slate-600 tabular-nums">{p.coverageDays !== null ? `${p.coverageDays}d` : '—'}</td>
+                      <td className="px-5 py-3.5">
+                        <TrendLabel trend={p.trend} />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <RiskBadge level={p.riskLevel} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </div>
+        </Card>
 
-        <div className="panel panel-shadow overflow-hidden">
-          <div className="px-5 py-4 card-header-slate flex items-center justify-between">
+        <Card className="overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/30">
             <h2 className="text-sm font-semibold text-slate-900">Purchase orders</h2>
-            <Link to="/purchase-orders" className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 hover:border-blue-200 shadow-sm">
-              View all →
+            <Link to="/purchase-orders">
+              <Button variant="secondary" size="xs">View all →</Button>
             </Link>
           </div>
           <div className="p-4">
             {actionable.length === 0 ? (
-              <p className="text-sm text-slate-400 py-4 text-center">No open purchase orders.</p>
+              <div className="text-center py-8">
+                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <Boxes className="w-5 h-5 text-slate-400" />
+                </div>
+                <p className="text-sm text-slate-500">No open purchase orders.</p>
+              </div>
             ) : (
               <div className="space-y-1">
                 {actionable.map((po) => (
-                  <div key={po.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100">
+                  <div key={po.id} className="flex items-center justify-between py-3 px-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-colors">
                     <div>
                       <div className="text-sm font-medium text-slate-900">{po.poNumber}</div>
                       <div className="text-xs text-slate-500">{po.supplierName}</div>
                     </div>
                     <div className="text-right">
                       <PoStatusBadge status={po.status} />
-                      <div className="text-xs text-slate-500 mt-0.5 font-mono">{formatMoney(po.totalCostCents)}</div>
+                      <div className="text-xs text-slate-500 mt-0.5 font-mono tabular-nums">{formatMoney(po.totalCostCents)}</div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
-        </div>
+        </Card>
       </div>
 
       {/* WebMCP info */}
-      <div className="mt-6 panel panel-shadow p-4 flex items-start gap-3 bg-gradient-to-r from-blue-50/40 to-violet-50/30 border-blue-200/60">
-        <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
-          <Boxes className="w-4 h-4 text-slate-500" />
-        </div>
-        <p className="text-xs text-slate-600 leading-relaxed">
-          Every metric here comes from the same server functions exposed as WebMCP tools. Connect a capable agent to
-          this tab to check stockout risk, create purchase orders, and adjust inventory — calls appear in the activity
-          panel live.
-        </p>
-      </div>
+      <Card className="mt-6 bg-gradient-to-r from-blue-50/40 to-violet-50/30 border-blue-200/60">
+        <CardContent className="flex items-start gap-3 py-4">
+          <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm">
+            <Boxes className="w-4 h-4 text-slate-500" />
+          </div>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Every metric here comes from the same server functions exposed as WebMCP tools. Connect a capable agent to
+            this tab to check stockout risk, create purchase orders, and adjust inventory — calls appear in the activity
+            panel live.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* Recent agent activity */}
       {recentActivity.length > 0 && (
-        <div className="mt-6 panel panel-shadow overflow-hidden">
-          <div className="px-5 py-3.5 card-header-blue flex items-center gap-2">
+        <Card className="mt-6 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2">
             <Boxes className="w-4 h-4 text-blue-600" />
             <h2 className="text-sm font-semibold text-slate-900">Recent agent activity</h2>
-            <span className="ml-auto text-xs bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-medium">{recentActivity.length}</span>
+            <Badge variant="blue" className="ml-auto">{recentActivity.length}</Badge>
           </div>
           <div className="p-2">
             {recentActivity.map((entry) => (
-              <div key={entry.id} className="flex items-center justify-between text-sm py-2.5 px-3 rounded-lg hover:bg-slate-50">
+              <div key={entry.id} className="flex items-center justify-between text-sm py-2.5 px-3 rounded-lg hover:bg-slate-50 transition-colors">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="font-mono text-[11px] text-slate-600 shrink-0 bg-white border border-slate-200 px-1.5 py-0.5 rounded">{entry.toolName}</span>
+                  <Badge variant="default" className="font-mono shrink-0">{entry.toolName}</Badge>
                   <span className="text-slate-700 truncate">{entry.summary}</span>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 ml-4">
                   {entry.consequential && (
-                    <span className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full font-medium">consequential</span>
+                    <Badge variant="amber">consequential</Badge>
                   )}
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-400 tabular-nums">
                     {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : ''}
                   </span>
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </Card>
       )}
     </div>
   )
 }
-
-

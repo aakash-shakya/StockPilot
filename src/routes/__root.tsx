@@ -3,6 +3,7 @@ import { HeadContent, Outlet, Scripts, createRootRoute, redirect, useRouter, use
 
 import { Nav } from '../components/Nav.js'
 import { AgentActivityPanel } from '../components/AgentActivityPanel.js'
+import { ToastProvider } from '../components/ui/Toast.js'
 import { WebMcpProvider } from '../lib/webmcp/WebMcpProvider.js'
 import { agentActivityStore } from '../lib/agent-activity-store.js'
 import { getCurrentUserFn } from '../server/auth.functions.js'
@@ -20,6 +21,26 @@ export const Route = createRootRoute({
       },
       {
         title: 'StockPilot — agent-native inventory management',
+      },
+      {
+        name: 'description',
+        content: 'Inventory management app where the dashboard and a browser-based AI agent operate on the same data through the same logic. Powered by WebMCP.',
+      },
+      {
+        property: 'og:title',
+        content: 'StockPilot — agent-native inventory management',
+      },
+      {
+        property: 'og:description',
+        content: 'Inventory management app where the dashboard and a browser-based AI agent operate on the same data through the same logic. Powered by WebMCP.',
+      },
+      {
+        property: 'og:type',
+        content: 'website',
+      },
+      {
+        name: 'theme-color',
+        content: '#0f172a',
       },
     ],
   }),
@@ -105,10 +126,12 @@ function RootComponent() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Nav user={user} />
-      <Outlet />
-      <WebMcpProvider />
-      <AgentActivityPanel />
+      <ToastProvider>
+        <Nav user={user} />
+        <Outlet />
+        <WebMcpProvider />
+        <AgentActivityPanel />
+      </ToastProvider>
     </div>
   )
 }
