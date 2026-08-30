@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, isRedirect } from '@tanstack/react-router'
 import { UserPlus, PackageSearch } from 'lucide-react'
 import { registerFn } from '../server/auth.functions.js'
 import { Button } from '../components/ui/Button.js'
@@ -22,8 +22,8 @@ function RegisterPage() {
     setLoading(true)
     try {
       await registerFn({ data: { email, password, name } })
-      window.location.href = '/'
     } catch (err) {
+      if (isRedirect(err)) throw err
       setError(err instanceof Error ? err.message : 'Registration failed')
       setLoading(false)
     }

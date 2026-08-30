@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getCookie, setCookie, deleteCookie } from '@tanstack/react-start/server'
+import { redirect } from '@tanstack/react-router'
 import { z } from 'zod'
 import * as auth from './auth.server.js'
 
@@ -29,7 +30,7 @@ export const registerFn = createServerFn({ method: 'POST' })
     const user = await auth.createUser(data)
     const { token, expiresAt } = await auth.createSession(user.id)
     setCookie(COOKIE_NAME, token, cookieOptions(expiresAt))
-    return user
+    throw redirect({ to: '/' })
   })
 
 export const loginFn = createServerFn({ method: 'POST' })
@@ -43,7 +44,7 @@ export const loginFn = createServerFn({ method: 'POST' })
     const user = await auth.authenticateUser(data.email, data.password)
     const { token, expiresAt } = await auth.createSession(user.id)
     setCookie(COOKIE_NAME, token, cookieOptions(expiresAt))
-    return user
+    throw redirect({ to: '/' })
   })
 
 export const logoutFn = createServerFn({ method: 'POST' }).handler(async () => {

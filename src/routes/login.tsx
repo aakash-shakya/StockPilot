@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, isRedirect } from '@tanstack/react-router'
 import { LogIn, PackageSearch } from 'lucide-react'
 import { loginFn } from '../server/auth.functions.js'
 import { Button } from '../components/ui/Button.js'
@@ -21,9 +21,8 @@ function LoginPage() {
     setLoading(true)
     try {
       await loginFn({ data: { email, password } })
-      // Full reload ensures SSR + beforeLoad run with the new cookie — no flash
-      window.location.href = '/'
     } catch (err) {
+      if (isRedirect(err)) throw err
       setError(err instanceof Error ? err.message : 'Login failed')
       setLoading(false)
     }
