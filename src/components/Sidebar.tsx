@@ -21,12 +21,14 @@ import { cn } from '../lib/cn.js'
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/products', label: 'Products', icon: PackageSearch },
+  { to: '/products/new', label: 'New Product', icon: PlusCircle },
   { to: '/purchase-orders', label: 'Orders', icon: ClipboardList },
   { to: '/agent-actions', label: 'Actions', icon: ShieldCheck },
   { to: '/suppliers', label: 'Suppliers', icon: Truck },
   { to: '/health', label: 'Health', icon: HeartPulse },
   { to: '/reports', label: 'Reports', icon: FileBarChart },
   { to: '/simulator', label: 'Simulator', icon: Sliders },
+  { to: '/agent-tools', label: 'Tools', icon: Terminal },
 ] as const
 
 interface SidebarProps {
@@ -129,28 +131,6 @@ export function Sidebar({ user, isAgentPanelOpen, onToggleAgentPanel }: SidebarP
             {navigator.platform?.includes('Mac') ? '\u2318' : 'Ctrl'}+/
           </kbd>
         </button>
-
-        {/* Agent Tools Link */}
-        <Link
-          to="/agent-tools"
-          className={cn(
-            'flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-colors',
-            'text-slate-400 hover:bg-white/5 hover:text-slate-200',
-            '[&.active]:bg-white/10 [&.active]:text-white',
-          )}
-        >
-          <Terminal className="w-4 h-4 shrink-0" />
-          Tools
-        </Link>
-
-        {/* New Product */}
-        <Link
-          to="/products/new"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-cyan-300 hover:bg-cyan-500/10 transition-colors"
-        >
-          <PlusCircle className="w-4 h-4 shrink-0" />
-          New Product
-        </Link>
 
         {/* User Menu */}
         {user && (

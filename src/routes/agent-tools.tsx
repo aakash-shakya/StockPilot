@@ -17,7 +17,7 @@ function AgentToolsPage() {
   for (const a of activity) callsByTool.set(a.toolName, (callsByTool.get(a.toolName) ?? 0) + 1)
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-8">
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
           <h1 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-heading)' }}>Agent Tools</h1>

@@ -41,7 +41,7 @@ function ProductsList() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>Products</h1>
         <p className="text-sm text-slate-500">{products.length} products in inventory • searchable and filterable</p>
@@ -49,7 +49,7 @@ function ProductsList() {
 
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="relative flex-1 min-w-64">
-          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             value={query}
             onChange={(e) => {
@@ -57,7 +57,7 @@ function ProductsList() {
               void runSearch(e.target.value, category)
             }}
             placeholder="Search by name or SKU..."
-            className="input pl-9"
+            className="input pl-10"
             style={{ fontFamily: 'var(--font-body)' }}
           />
         </div>
