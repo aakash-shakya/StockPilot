@@ -140,7 +140,10 @@ const READ_TOOLS: ToolDef[] = [
     name: 'search_products',
     title: 'Search products',
     description:
-      'Search the product catalog by name or SKU, optionally filtered by category. Use this for targeted lookups by exact name or SKU. For natural-language questions like "what electronics are running low", use query_inventory instead.',
+      'Search the product catalog by name or SKU, optionally filtered by category. ' +
+      'IMPORTANT: Use partial strings if exact match fails. If no results found, try semantic variations ' +
+      '(e.g. "wireless" instead of "Wireless Charging Pad", or "charger" instead of "charging"). ' +
+      'For natural-language questions like "what electronics are running low", use query_inventory instead.',
     inputSchema: toJsonSchema(searchProductsSchema),
     annotations: {
       readOnlyHint: true,
@@ -182,7 +185,9 @@ const READ_TOOLS: ToolDef[] = [
     name: 'find_low_stock',
     title: 'Find low stock',
     description:
-      'Find products that are at or below their reorder threshold, or projected to run out within a given number of days. Returns a flat list without trend analysis — for velocity trends and risk explanations, use analyze_stock_risk instead.',
+      'Find products that are at or below their reorder threshold, or projected to run out within a given number of days. ' +
+      'Returns a flat list without trend analysis — for velocity trends and risk explanations, use analyze_stock_risk instead. ' +
+      'If no results found, try increasing the days parameter (e.g. 14 or 30).',
     inputSchema: toJsonSchema(findLowStockSchema),
     outputSchema: { type: 'object', properties: {}, additionalProperties: true },
     annotations: {
@@ -359,7 +364,10 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'analyze_stock_risk',
     title: 'Analyze stock risk',
     description:
-      'Run a fuller risk analysis than find_low_stock: for each product, compares recent (7-day) vs. baseline (prior 23-day) sales velocity to flag whether depletion is accelerating, steady, or declining, and factors in supplier lead time and any known shipment delays. Use this to explain WHY a product is at risk, not just that it is.',
+      'Run a fuller risk analysis than find_low_stock: for each product, compares recent (7-day) vs. baseline (prior 23-day) ' +
+      'sales velocity to flag whether depletion is accelerating, steady, or declining, and factors in supplier lead time ' +
+      'and any known shipment delays. Use this to explain WHY a product is at risk, not just that it is. ' +
+      'If no at-risk products found, the inventory is healthy — try get_inventory_summary for a full picture.',
     inputSchema: toJsonSchema(analyzeStockRiskSchema),
     annotations: {
       readOnlyHint: true,
@@ -379,7 +387,10 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'recommend_reorder',
     title: 'Recommend reorder quantities',
     description:
-      'Compute suggested reorder quantities and estimated cost for a set of products (or, if none given, every currently at-risk product) — enough stock to cover the target coverage window plus the supplier lead time and any known delay. This does NOT place an order; it only recommends one.',
+      'Compute suggested reorder quantities and estimated cost for a set of products (or, if none given, every currently ' +
+      'at-risk product) — enough stock to cover the target coverage window plus the supplier lead time and any known delay. ' +
+      'This does NOT place an order; it only recommends one. ' +
+      'IMPORTANT: To actually create a purchase order, use create_purchase_order after reviewing the recommendation.',
     inputSchema: toJsonSchema(recommendReorderSchema),
     annotations: {
       readOnlyHint: true,
@@ -544,7 +555,10 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'query_inventory',
     title: 'Query inventory in natural language',
     description:
-      'Convert a natural-language inventory question (e.g. "what electronics are running out in the next 5 days") into structured filters and return matching products. Parsing is deterministic and rule-based. Use this for free-form questions. For targeted lookups by exact name or SKU, use search_products instead.',
+      'Convert a natural-language inventory question (e.g. "what electronics are running out in the next 5 days") ' +
+      'into structured filters and return matching products. Parsing is deterministic and rule-based. ' +
+      'IMPORTANT: If no results found, retry with semantic variations or simpler phrasing. ' +
+      'For targeted lookups by exact name or SKU, use search_products instead.',
     inputSchema: toJsonSchema(queryInventorySchema),
     annotations: {
       readOnlyHint: true,
@@ -604,7 +618,10 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'get_morning_briefing',
     title: 'Get morning briefing',
     description:
-      'Get a comprehensive morning briefing in one call: health score (0-100), urgent issues, pending approvals, reorder budget, dead-stock capital, supplier alerts, and the single top action to take. Use this as the first call at the start of any session to get the full picture.',
+      'Get a comprehensive morning briefing in one call: health score (0-100), urgent issues, pending approvals, ' +
+      'reorder budget, dead-stock capital, supplier alerts, and the single top action to take. ' +
+      'Use this as the first call at the start of any session to get the full picture. ' +
+      'Best opening query: "Run a morning briefing" or "What do I need to know today?"',
     inputSchema: toJsonSchema(whatShouldIWorryAboutSchema),
     annotations: {
       readOnlyHint: true,

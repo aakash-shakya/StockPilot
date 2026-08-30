@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, isRedirect } from '@tanstack/react-router'
 import { LogIn, PackageSearch } from 'lucide-react'
 import { loginFn } from '../server/auth.functions.js'
 import { Button } from '../components/ui/Button.js'
@@ -10,7 +10,6 @@ export const Route = createFileRoute('/login')({
 })
 
 function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -22,11 +21,9 @@ function LoginPage() {
     setLoading(true)
     try {
       await loginFn({ data: { email, password } })
-      await router.invalidate()
-      router.navigate({ to: '/' })
     } catch (err) {
+      if (isRedirect(err)) throw err
       setError(err instanceof Error ? err.message : 'Login failed')
-    } finally {
       setLoading(false)
     }
   }

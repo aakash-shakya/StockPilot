@@ -23,7 +23,7 @@ function HealthPage() {
   const totalDeadCapitalCents = deadStock.reduce((sum, d) => sum + d.capitalTiedUpCents, 0)
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>Inventory Health</h1>
         <p className="text-sm text-slate-500">{worryAbout.summary}</p>

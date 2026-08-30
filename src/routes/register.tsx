@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link, isRedirect } from '@tanstack/react-router'
 import { UserPlus, PackageSearch } from 'lucide-react'
 import { registerFn } from '../server/auth.functions.js'
 import { Button } from '../components/ui/Button.js'
@@ -10,7 +10,6 @@ export const Route = createFileRoute('/register')({
 })
 
 function RegisterPage() {
-  const router = useRouter()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -23,11 +22,9 @@ function RegisterPage() {
     setLoading(true)
     try {
       await registerFn({ data: { email, password, name } })
-      await router.invalidate()
-      router.navigate({ to: '/' })
     } catch (err) {
+      if (isRedirect(err)) throw err
       setError(err instanceof Error ? err.message : 'Registration failed')
-    } finally {
       setLoading(false)
     }
   }

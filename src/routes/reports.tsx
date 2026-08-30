@@ -58,7 +58,7 @@ function ReportsPage() {
   const columns = report && report.rows.length > 0 ? Object.keys(report.rows[0] as Record<string, unknown>) : []
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-1" style={{ fontFamily: 'var(--font-heading)' }}>Reports</h1>
         <p className="text-sm text-gray-500">Describe what you want in plain English. Deterministic parsing.</p>

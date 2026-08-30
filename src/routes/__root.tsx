@@ -1,8 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { HeadContent, Outlet, Scripts, createRootRoute, redirect, useRouter, useRouterState } from '@tanstack/react-router'
 
-import { Nav } from '../components/Nav.js'
-import { AgentActivityPanel } from '../components/AgentActivityPanel.js'
+import { Sidebar } from '../components/Sidebar.js'
+import { AgentActivityDrawer } from '../components/AgentActivityPanel.js'
 import { ToastProvider } from '../components/ui/Toast.js'
 import { WebMcpProvider } from '../lib/webmcp/WebMcpProvider.js'
 import { agentActivityStore } from '../lib/agent-activity-store.js'
@@ -90,6 +90,7 @@ function RootComponent() {
   const { user } = Route.useRouteContext()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isAuthPage = pathname === '/login' || pathname === '/register'
+  const [agentPanelOpen, setAgentPanelOpen] = useState(false)
 
   useEffect(() => {
     const sub = agentActivityStore.subscribe(() => {
@@ -97,6 +98,19 @@ function RootComponent() {
     })
     return () => sub.unsubscribe()
   }, [router])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      // Cmd+/ or Ctrl+/ — toggle agent panel
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+        e.preventDefault()
+        setAgentPanelOpen((v) => !v)
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [])
 
   // Handle WebMCP UI manipulation events from agent tools
   useEffect(() => {
@@ -146,12 +160,21 @@ function RootComponent() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-surface-sunken)' }}>
+    <div className="min-h-screen flex" style={{ backgroundColor: 'var(--color-surface-sunken)' }}>
       <ToastProvider>
-        <Nav user={user} />
-        <Outlet />
+        <Sidebar
+          user={user}
+          isAgentPanelOpen={agentPanelOpen}
+          onToggleAgentPanel={() => setAgentPanelOpen((v) => !v)}
+        />
+        <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-y-auto">
+          <Outlet />
+        </div>
+        <AgentActivityDrawer
+          open={agentPanelOpen}
+          onToggle={() => setAgentPanelOpen((v) => !v)}
+        />
         <WebMcpProvider />
-        <AgentActivityPanel />
       </ToastProvider>
     </div>
   )

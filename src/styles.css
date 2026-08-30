@@ -18,6 +18,10 @@
   --color-accent-light: #ecfeff;
   --color-accent-hover: #0e7490;
 
+  --color-sidebar: #0f172a;
+  --color-sidebar-border: rgba(255, 255, 255, 0.08);
+  --color-sidebar-text: #94a3b8;
+
   --color-status-good: #059669;
   --color-status-good-light: #ecfdf5;
   --color-status-warning: #d97706;

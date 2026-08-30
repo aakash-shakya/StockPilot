@@ -100,7 +100,7 @@ function NewProductPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-8">
       <Link to="/products" className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 mb-3">
         <ArrowLeft className="w-3 h-3" /> Products
       </Link>

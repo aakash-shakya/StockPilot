@@ -6,9 +6,14 @@
   targetPort = 3000
   port = 8888
 
+# Static assets — safe to CDN-cache aggressively
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Everything else — no CDN caching (SSR pages are server functions, not static files)
 [[headers]]
   for = "/*"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
-    Netlify-CDN-Cache-Control = "public, durable, s-maxage=300, stale-while-revalidate=604800"
-    Vary = "Accept-Encoding"
