@@ -88,9 +88,23 @@ export async function verifyJwt(token: string): Promise<SafeUser | null> {
     if (!payload.sub) return null
     const userId = Number(payload.sub)
     if (isNaN(userId)) return null
-    const user = await findUserById(userId)
-    return user
+    try {
+      const user = await findUserById(userId)
+      if (user) return user
+    } catch {
+      // DB unavailable on cold start — fall through to degraded JWT payload
+    }
+    // JWT is valid but DB lookup failed or returned nothing — degrade gracefully
+    return {
+      id: userId,
+      email: String(payload.email ?? ''),
+      name: String(payload.name ?? ''),
+      role: String(payload.role ?? 'admin'),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }
   } catch {
+    // JWT signature invalid or expired
     return null
   }
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
-import { LogIn, PackageSearch, Loader2 } from 'lucide-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { LogIn, PackageSearch } from 'lucide-react'
 import { loginFn } from '../server/auth.functions.js'
 import { Button } from '../components/ui/Button.js'
 import { Card } from '../components/ui/Card.js'
@@ -10,12 +10,10 @@ export const Route = createFileRoute('/login')({
 })
 
 function LoginPage() {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const [navigating, setNavigating] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -23,24 +21,12 @@ function LoginPage() {
     setLoading(true)
     try {
       await loginFn({ data: { email, password } })
-      setNavigating(true)
-      await router.invalidate()
-      router.navigate({ to: '/' })
+      // Full reload ensures SSR + beforeLoad run with the new cookie — no flash
+      window.location.href = '/'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
       setLoading(false)
     }
-  }
-
-  if (navigating) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-surface-sunken)' }}>
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-8 h-8 text-cyan-600 animate-spin" />
-          <p className="text-sm text-slate-500" style={{ fontFamily: 'var(--font-body)' }}>Loading your dashboard...</p>
-        </div>
-      </div>
-    )
   }
 
   return (
