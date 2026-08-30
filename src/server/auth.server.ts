@@ -1,12 +1,20 @@
-import { eq, lt } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import bcrypt from 'bcryptjs'
-import { randomBytes } from 'node:crypto'
+import { SignJWT, jwtVerify } from 'jose'
 import { db } from '../../db/index.js'
-import { sessions, users } from '../../db/schema.js'
+import { users } from '../../db/schema.js'
 
 const SESSION_COOKIE = 'stockpilot_session'
 const SESSION_MAX_AGE_DAYS = 7
 const BCRYPT_ROUNDS = 12
+
+function getJwtSecret() {
+  const secret = process.env.JWT_SECRET
+  if (secret) return new TextEncoder().encode(secret)
+  // Fallback for dev — NOT secure for production
+  console.warn('[auth] No JWT_SECRET set, using fallback secret. Set JWT_SECRET in Netlify env vars for production.')
+  return new TextEncoder().encode('stockpilot-dev-fallback-secret-not-for-production')
+}
 
 export function getSessionCookieName() {
   return SESSION_COOKIE
@@ -18,10 +26,6 @@ export function hashPassword(password: string): Promise<string> {
 
 export function verifyPassword(password: string, hash: string): Promise<boolean> {
   return bcrypt.compare(password, hash)
-}
-
-export function generateToken(): string {
-  return randomBytes(32).toString('hex')
 }
 
 export async function createUser(input: { email: string; password: string; name: string; role?: string }) {
@@ -63,48 +67,58 @@ export function sanitizeUser(user: typeof users.$inferSelect) {
 
 export type SafeUser = ReturnType<typeof sanitizeUser>
 
-export async function createSession(userId: number): Promise<{ token: string; expiresAt: Date }> {
-  const token = generateToken()
-  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_DAYS * 86400000)
-  await db.insert(sessions).values({ userId, token, expiresAt })
-  return { token, expiresAt }
+export async function signJwt(user: SafeUser): Promise<string> {
+  const token = await new SignJWT({
+    sub: String(user.id),
+    email: user.email,
+    name: user.name,
+    role: user.role,
+  })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(`${SESSION_MAX_AGE_DAYS}d`)
+    .sign(getJwtSecret())
+  return token
 }
 
-export async function validateSessionToken(token: string): Promise<SafeUser | null> {
+export async function verifyJwt(token: string): Promise<SafeUser | null> {
   if (!token) return null
   try {
-    const [session] = await db.select().from(sessions).where(eq(sessions.token, token))
-    if (!session) return null
-
-    const expiresAt = session.expiresAt instanceof Date ? session.expiresAt : new Date(session.expiresAt)
-    if (expiresAt < new Date()) {
-      await db.delete(sessions).where(eq(sessions.token, token))
-      return null
-    }
-    // extend if within 3 days of expiry
-    const threeDays = 3 * 86400000
-    if (expiresAt.getTime() - Date.now() < threeDays) {
-      const newExpires = new Date(Date.now() + SESSION_MAX_AGE_DAYS * 86400000)
-      await db.update(sessions).set({ expiresAt: newExpires }).where(eq(sessions.token, token))
-    }
-    const user = await findUserById(session.userId)
+    const { payload } = await jwtVerify(token, getJwtSecret())
+    if (!payload.sub) return null
+    const userId = Number(payload.sub)
+    if (isNaN(userId)) return null
+    const user = await findUserById(userId)
     return user
-  } catch (err) {
-    console.error('[auth] validateSessionToken failed:', err)
+  } catch {
     return null
   }
 }
 
-export async function deleteSession(token: string) {
-  await db.delete(sessions).where(eq(sessions.token, token))
+// Kept for backwards compat — now signs a JWT instead of creating a DB session
+export async function createSession(userId: number): Promise<{ token: string; expiresAt: Date }> {
+  const user = await findUserById(userId)
+  if (!user) throw new Error('User not found')
+  const token = await signJwt(user)
+  const expiresAt = new Date(Date.now() + SESSION_MAX_AGE_DAYS * 86400000)
+  return { token, expiresAt }
 }
 
-export async function deleteAllSessionsForUser(userId: number) {
-  await db.delete(sessions).where(eq(sessions.userId, userId))
+// No-op — JWT can't be revoked server-side, cookie deletion handles it
+export async function deleteSession(_token: string) {
+  // JWT is self-contained; removing the cookie is sufficient
+}
+
+export async function deleteAllSessionsForUser(_userId: number) {
+  // JWT is self-contained; no server-side session to delete
 }
 
 export async function cleanupExpiredSessions() {
-  await db.delete(sessions).where(lt(sessions.expiresAt, new Date()))
+  // No DB sessions to clean up — JWT expiry is checked at verification time
+}
+
+export async function validateSessionToken(token: string): Promise<SafeUser | null> {
+  return verifyJwt(token)
 }
 
 export async function authenticateUser(email: string, password: string): Promise<SafeUser> {
@@ -117,5 +131,5 @@ export async function authenticateUser(email: string, password: string): Promise
 
 export async function getUserFromToken(token: string | undefined | null): Promise<SafeUser | null> {
   if (!token) return null
-  return validateSessionToken(token)
+  return verifyJwt(token)
 }
