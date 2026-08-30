@@ -4,6 +4,7 @@ import {
   findLowStockFn,
   getInventorySummaryFn,
   getMissionStatusFn,
+  getProductValuesFn,
   getPurchaseOrdersFn,
   getRecentAgentActivityFn,
   listAgentActionsFn,
@@ -15,12 +16,13 @@ import { Card, CardContent } from '../components/ui/Card.js'
 import { Button } from '../components/ui/Button.js'
 import { Badge } from '../components/ui/Badge.js'
 import { NumberAnimation } from '../components/ui/NumberAnimation.js'
+import { StockHealthChart, ProductValueChart } from '../components/DashboardCharts.js'
 
 export const Route = createFileRoute('/')({
   component: Dashboard,
   loader: async ({ context }) => {
     const userId = context.user?.id
-    const [summary, atRisk, purchaseOrders, recentActivity, worryAbout, pendingActions, mission] = await Promise.all([
+    const [summary, atRisk, purchaseOrders, recentActivity, worryAbout, pendingActions, mission, productValues] = await Promise.all([
       getInventorySummaryFn(),
       findLowStockFn({ data: { days: 7 } }),
       getPurchaseOrdersFn(),
@@ -28,17 +30,19 @@ export const Route = createFileRoute('/')({
       whatShouldIWorryAboutFn(),
       listAgentActionsFn({ data: { status: 'pending' } }),
       getMissionStatusFn(),
+      getProductValuesFn(),
     ])
-    return { summary, atRisk, purchaseOrders, recentActivity, worryAbout, pendingActions, mission }
+    return { summary, atRisk, purchaseOrders, recentActivity, worryAbout, pendingActions, mission, productValues }
   },
 })
 
 function Dashboard() {
-  const { summary, atRisk, purchaseOrders, recentActivity, worryAbout, pendingActions, mission } = Route.useLoaderData()
+  const { summary, atRisk, purchaseOrders, recentActivity, worryAbout, pendingActions, mission, productValues } = Route.useLoaderData()
   const actionable = purchaseOrders.filter((po) => po.status !== 'received').slice(0, 5)
+  const goodCount = summary.totalProducts - summary.criticalCount - summary.warningCount - summary.watchCount
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>
           Inventory overview
@@ -85,6 +89,28 @@ function Dashboard() {
           </div>
         </div>
       </Card>
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <Card className="overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100">
+            <h2 className="text-sm font-semibold text-slate-900">Stock health</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Distribution by risk level</p>
+          </div>
+          <div className="px-5 py-4">
+            <StockHealthChart critical={summary.criticalCount} warning={summary.warningCount} good={goodCount} />
+          </div>
+        </Card>
+        <Card className="overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-slate-100">
+            <h2 className="text-sm font-semibold text-slate-900">Inventory value</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Top products by stock value</p>
+          </div>
+          <div className="px-5 py-4">
+            <ProductValueChart products={productValues} />
+          </div>
+        </Card>
+      </div>
 
       {/* Main content grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

@@ -184,6 +184,22 @@ export async function getInventorySummary() {
   }
 }
 
+export async function getProductValues() {
+  const rows = await db
+    .select({
+      name: products.name,
+      quantity: products.quantity,
+      priceCents: products.priceCents,
+    })
+    .from(products)
+  return rows
+    .map((r) => ({
+      name: r.name,
+      valueCents: r.quantity * r.priceCents,
+    }))
+    .sort((a, b) => b.valueCents - a.valueCents)
+}
+
 export async function findLowStock(input: { days?: number; category?: string }) {
   const days = input.days ?? 7
   const risk = await riskForProducts()

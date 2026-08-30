@@ -145,6 +145,8 @@ export const searchProductsFn = createServerFn({ method: 'GET' })
 
 export const getInventorySummaryFn = createServerFn({ method: 'GET' }).handler(() => inventory.getInventorySummary())
 
+export const getProductValuesFn = createServerFn({ method: 'GET' }).handler(() => inventory.getProductValues())
+
 export const findLowStockFn = createServerFn({ method: 'GET' })
   .inputValidator(findLowStockSchema)
   .handler(({ data }) => inventory.findLowStock(data))
