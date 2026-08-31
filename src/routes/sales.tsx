@@ -35,15 +35,17 @@ function SalesHistoryPage() {
 
   const totalPages = Math.ceil(total / pageSize)
 
-  function formatDate(ts: number | null) {
-    if (!ts) return '—'
-    const d = new Date(ts * 1000)
+  function formatDate(value: unknown) {
+    if (!value) return '—'
+    const d = value instanceof Date ? value : new Date(String(value))
+    if (isNaN(d.getTime())) return '—'
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  function formatTime(ts: number | null) {
-    if (!ts) return ''
-    const d = new Date(ts * 1000)
+  function formatTime(value: unknown) {
+    if (!value) return ''
+    const d = value instanceof Date ? value : new Date(String(value))
+    if (isNaN(d.getTime())) return ''
     return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
   }
 
@@ -132,7 +134,7 @@ function SalesHistoryPage() {
                     <td className="px-5 py-3 font-medium text-[var(--color-ink)]">{sale.productName}</td>
                     <td className="px-5 py-3 font-mono text-xs text-[var(--color-ink-muted)]">{sale.productSku}</td>
                     <td className="px-5 py-3 text-right">
-                      <Badge variant="red">-{sale.quantity}</Badge>
+                      <Badge variant="red">{sale.quantity}</Badge>
                     </td>
                     <td className="px-5 py-3">
                       <Badge variant={sale.actor === 'agent' ? 'blue' : 'default'}>
