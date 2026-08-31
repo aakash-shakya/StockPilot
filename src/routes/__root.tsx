@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { HeadContent, Outlet, Scripts, createRootRoute, useRouter, useRouterState } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRoute, redirect, useRouter, useRouterState } from '@tanstack/react-router'
 
 import { Sidebar } from '../components/Sidebar.js'
 import { AgentActivityDrawer } from '../components/AgentActivityPanel.js'
@@ -43,7 +43,18 @@ export const Route = createRootRoute({
       },
     ],
   }),
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
+    const publicPaths = ['/login', '/register']
+    const isPublic = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'))
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('stockpilot_token')
+      if (!token && !isPublic) {
+        throw redirect({ to: '/login' })
+      }
+      if (token && isPublic) {
+        throw redirect({ to: '/' })
+      }
+    }
     return { user: null }
   },
   pendingComponent: RootLoading,
