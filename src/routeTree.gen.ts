@@ -19,6 +19,7 @@ import { Route as ProductsRouteImport } from './routes/products'
 import { Route as PurchaseOrdersRouteImport } from './routes/purchase-orders'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as SalesRouteImport } from './routes/sales'
 import { Route as SimulatorRouteImport } from './routes/simulator'
 import { Route as SuppliersRouteImport } from './routes/suppliers'
 import { Route as ProductsProductIdRouteImport } from './routes/products.$productId'
@@ -74,6 +75,11 @@ const ReportsRoute = ReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SalesRoute = SalesRouteImport.update({
+  id: '/sales',
+  path: '/sales',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SimulatorRoute = SimulatorRouteImport.update({
   id: '/simulator',
   path: '/simulator',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/purchase-orders': typeof PurchaseOrdersRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
+  '/sales': typeof SalesRoute
   '/simulator': typeof SimulatorRoute
   '/suppliers': typeof SuppliersRoute
   '/products/$productId': typeof ProductsProductIdRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/purchase-orders': typeof PurchaseOrdersRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
+  '/sales': typeof SalesRoute
   '/simulator': typeof SimulatorRoute
   '/suppliers': typeof SuppliersRoute
   '/products/$productId': typeof ProductsProductIdRoute
@@ -139,6 +147,7 @@ export interface FileRoutesById {
   '/purchase-orders': typeof PurchaseOrdersRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
+  '/sales': typeof SalesRoute
   '/simulator': typeof SimulatorRoute
   '/suppliers': typeof SuppliersRoute
   '/products/$productId': typeof ProductsProductIdRoute
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/purchase-orders'
     | '/register'
     | '/reports'
+    | '/sales'
     | '/simulator'
     | '/suppliers'
     | '/products/$productId'
@@ -173,6 +183,7 @@ export interface FileRouteTypes {
     | '/purchase-orders'
     | '/register'
     | '/reports'
+    | '/sales'
     | '/simulator'
     | '/suppliers'
     | '/products/$productId'
@@ -189,6 +200,7 @@ export interface FileRouteTypes {
     | '/purchase-orders'
     | '/register'
     | '/reports'
+    | '/sales'
     | '/simulator'
     | '/suppliers'
     | '/products/$productId'
@@ -206,6 +218,7 @@ export interface RootRouteChildren {
   PurchaseOrdersRoute: typeof PurchaseOrdersRoute
   RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
+  SalesRoute: typeof SalesRoute
   SimulatorRoute: typeof SimulatorRoute
   SuppliersRoute: typeof SuppliersRoute
 }
@@ -282,6 +295,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sales': {
+      id: '/sales'
+      path: '/sales'
+      fullPath: '/sales'
+      preLoaderRoute: typeof SalesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/simulator': {
       id: '/simulator'
       path: '/simulator'
@@ -338,6 +358,7 @@ const rootRouteChildren: RootRouteChildren = {
   PurchaseOrdersRoute: PurchaseOrdersRoute,
   RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
+  SalesRoute: SalesRoute,
   SimulatorRoute: SimulatorRoute,
   SuppliersRoute: SuppliersRoute,
 }

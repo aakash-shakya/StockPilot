@@ -571,6 +571,52 @@ export async function processReturn(input: {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Sales history
+// ---------------------------------------------------------------------------
+
+export async function getSalesHistory(input?: { limit?: number; offset?: number }) {
+  const limit = input?.limit ?? 50
+  const offset = input?.offset ?? 0
+
+  const rows = await db
+    .select({
+      id: inventoryMovements.id,
+      productId: inventoryMovements.productId,
+      productName: products.name,
+      productSku: products.sku,
+      quantityDelta: inventoryMovements.quantityDelta,
+      note: inventoryMovements.note,
+      actor: inventoryMovements.actor,
+      createdAt: inventoryMovements.createdAt,
+    })
+    .from(inventoryMovements)
+    .innerJoin(products, eq(inventoryMovements.productId, products.id))
+    .where(eq(inventoryMovements.type, 'sale'))
+    .orderBy(inventoryMovements.createdAt)
+    .limit(limit)
+    .offset(offset)
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(inventoryMovements)
+    .where(eq(inventoryMovements.type, 'sale'))
+
+  return {
+    sales: rows.map((r) => ({
+      id: r.id,
+      productId: r.productId,
+      productName: r.productName,
+      productSku: r.productSku,
+      quantity: Math.abs(r.quantityDelta),
+      note: r.note,
+      actor: r.actor,
+      createdAt: r.createdAt,
+    })),
+    total: countRow?.count ?? 0,
+  }
+}
+
 export async function updateStock(input: {
   productId: number
   quantityDelta: number

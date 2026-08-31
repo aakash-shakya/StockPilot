@@ -229,6 +229,15 @@ export const updateStockFn = createServerFn({ method: 'POST' })
   .inputValidator(updateStockSchema)
   .handler(({ data }) => inventory.updateStock(data))
 
+export const getSalesHistoryFn = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      limit: z.number().int().min(1).max(200).optional().default(50),
+      offset: z.number().int().min(0).optional().default(0),
+    }).optional(),
+  )
+  .handler(({ data }) => inventory.getSalesHistory(data))
+
 export const logAgentToolCallFn = createServerFn({ method: 'POST' })
   .inputValidator(
     z.object({
