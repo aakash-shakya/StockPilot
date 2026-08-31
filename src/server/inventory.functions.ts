@@ -172,6 +172,18 @@ export const getPurchaseOrdersFn = createServerFn({ method: 'GET' })
 
 export const getSuppliersFn = createServerFn({ method: 'GET' }).handler(() => inventory.getSuppliers())
 
+export const createSupplierFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      name: z.string().min(1),
+      contactEmail: z.string().email(),
+      leadTimeDays: z.number().int().min(1).optional().default(7),
+      delayDays: z.number().int().min(0).optional().default(0),
+      delayNote: z.string().optional(),
+    }),
+  )
+  .handler(({ data }) => inventory.createSupplier(data))
+
 export const createPurchaseOrderFn = createServerFn({ method: 'POST' })
   .inputValidator(createPurchaseOrderSchema)
   .handler(({ data }) => inventory.createPurchaseOrder(data))

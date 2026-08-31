@@ -530,6 +530,23 @@ export async function getSuppliers() {
   return db.select().from(suppliers).orderBy(suppliers.name)
 }
 
+export async function createSupplier(data: {
+  name: string
+  contactEmail: string
+  leadTimeDays?: number
+  delayDays?: number
+  delayNote?: string
+}) {
+  const result = await db.insert(suppliers).values({
+    name: data.name,
+    contactEmail: data.contactEmail,
+    leadTimeDays: data.leadTimeDays ?? 7,
+    delayDays: data.delayDays ?? 0,
+    delayNote: data.delayNote ?? null,
+  }).returning()
+  return result[0]
+}
+
 // ---------------------------------------------------------------------------
 // Supplier intelligence & comparison
 // ---------------------------------------------------------------------------

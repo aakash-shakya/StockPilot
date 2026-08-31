@@ -85,6 +85,36 @@ function SimulatorPage() {
       />
      </div>
     </div>
+
+    {/* Demand change presets */}
+    <div className="mb-4">
+      <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block mb-2">Quick presets</label>
+      <div className="flex flex-wrap gap-2">
+        {[
+          { label: '−50%', value: '-50' },
+          { label: '−25%', value: '-25' },
+          { label: '0%', value: '0' },
+          { label: '+25%', value: '25' },
+          { label: '+50%', value: '50' },
+          { label: '+100%', value: '100' },
+          { label: '+200%', value: '200' },
+        ].map((preset) => (
+          <button
+            key={preset.value}
+            onClick={() => setDemandChangePct(preset.value)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 border ${
+              demandChangePct === preset.value
+                ? 'bg-blue-600 text-white border-blue-600 shadow-sm'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+            }`}
+          >
+            {preset.label}
+          </button>
+        ))}
+      </div>
+      <p className="text-[11px] text-slate-400 mt-2">Adjusts daily sales velocity for the simulation horizon</p>
+    </div>
+
     <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 mb-4">
      <div>
       <label className="text-[11px] text-gray-400 font-medium uppercase tracking-wider block mb-1">Horizon (days)</label>
