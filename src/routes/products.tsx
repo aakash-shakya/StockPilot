@@ -1,10 +1,12 @@
-import { useState } from 'react'
-import { createFileRoute, Link, Outlet, useMatches } from '@tanstack/react-router'
-import { Search } from 'lucide-react'
-import { getInventorySummaryFn, searchProductsFn } from '../server/inventory.functions.js'
+import { useState, useRef } from 'react'
+import { createFileRoute, Link, Outlet, useMatches, useRouter } from '@tanstack/react-router'
+import { Search, Upload, X } from 'lucide-react'
+import Papa from 'papaparse'
+import { getInventorySummaryFn, searchProductsFn, bulkCreateProductsFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 import { Card } from '../components/ui/Card.js'
 import { Badge } from '../components/ui/Badge.js'
+import { Button } from '../components/ui/Button.js'
 
 export const Route = createFileRoute('/products')({
   component: ProductsLayout,
@@ -27,6 +29,7 @@ function ProductsList() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('')
   const [loading, setLoading] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   async function runSearch(nextQuery: string, nextCategory: string) {
     setLoading(true)
@@ -50,6 +53,9 @@ function ProductsList() {
               <h1 className="text-2xl font-bold text-slate-900 mb-0.5 tracking-tight" style={{ fontFamily: 'var(--font-heading)' }}>Products</h1>
               <p className="text-sm text-slate-500">{products.length} products in inventory</p>
             </div>
+            <Button variant="secondary" size="sm" onClick={() => setImportOpen(true)} icon={<Upload className="w-4 h-4" />}>
+              Import CSV
+            </Button>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-64 max-w-md">
@@ -81,8 +87,13 @@ function ProductsList() {
                 </option>
               ))}
             </select>
-          </div>
-        </div>
+      </div>
+      <CsvImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onComplete={() => setImportOpen(false)}
+      />
+    </div>
       </div>
 
       {/* Scrollable table */}
@@ -133,6 +144,124 @@ function ProductsList() {
               </table>
             </div>
           </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function CsvImportModal({
+  open,
+  onClose,
+  onComplete,
+}: {
+  open: boolean
+  onClose: () => void
+  onComplete: () => void
+}) {
+  const router = useRouter()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [importing, setImporting] = useState(false)
+  const [importResult, setImportResult] = useState<{ inserted: number } | null>(null)
+  const [importError, setImportError] = useState<string | null>(null)
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setImporting(true)
+    setImportError(null)
+    setImportResult(null)
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        try {
+          const rows = results.data as Record<string, string>[]
+          const items = rows.map((row) => ({
+            sku: row.sku || row.SKU || '',
+            name: row.name || row.Name || '',
+            category: row.category || row.Category || 'Uncategorized',
+            supplierId: parseInt(row.supplierId || row.supplier_id || row['Supplier ID'] || '1', 10),
+            costCents: Math.round(parseFloat(row.costCents || row.cost_cents || row['Cost'] || '0') * 100) || 0,
+            priceCents: Math.round(parseFloat(row.priceCents || row.price_cents || row['Price'] || '0') * 100) || 0,
+            quantity: parseInt(row.quantity || row.stock || row.Quantity || '0', 10),
+            reorderThreshold: parseInt(row.reorderThreshold || row.reorder_threshold || row['Reorder At'] || '5', 10),
+          })).filter((item) => item.sku && item.name)
+
+          if (items.length === 0) {
+            setImportError('No valid rows found. Ensure your CSV has sku, name, category, and price columns.')
+            setImporting(false)
+            return
+          }
+
+          const result = await bulkCreateProductsFn({ data: items })
+          setImportResult(result)
+          await router.invalidate()
+          onComplete()
+        } catch (err) {
+          setImportError(err instanceof Error ? err.message : 'Import failed')
+        } finally {
+          setImporting(false)
+        }
+      },
+      error: (err) => {
+        setImportError(err.message || 'Failed to parse CSV')
+        setImporting(false)
+      },
+    })
+  }
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>Import Products from CSV</h2>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-slate-100 transition-colors">
+            <X className="w-4 h-4 text-slate-500" />
+          </button>
+        </div>
+
+        <div className="text-sm text-slate-500 mb-4">
+          <p className="mb-2">Your CSV should have columns: <code className="bg-slate-100 px-1 rounded">sku</code>, <code className="bg-slate-100 px-1 rounded">name</code>, <code className="bg-slate-100 px-1 rounded">category</code>, <code className="bg-slate-100 px-1 rounded">price</code>, <code className="bg-slate-100 px-1 rounded">cost</code>, <code className="bg-slate-100 px-1 rounded">quantity</code>, <code className="bg-slate-100 px-1 rounded">supplier_id</code>.</p>
+          <p>Optional: <code className="bg-slate-100 px-1 rounded">reorder_threshold</code> (default 5).</p>
+        </div>
+
+        {importResult ? (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4">
+            <p className="text-sm font-medium text-emerald-700">Successfully imported {importResult.inserted} product(s).</p>
+          </div>
+        ) : importError ? (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+            <p className="text-sm font-medium text-red-700">{importError}</p>
+          </div>
+        ) : null}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleFileChange}
+          className="hidden"
+        />
+
+        <div className="flex gap-3">
+          <Button variant="ghost" size="sm" onClick={onClose} className="flex-1">
+            {importResult ? 'Done' : 'Cancel'}
+          </Button>
+          {!importResult && (
+            <Button
+              variant="primary"
+              size="sm"
+              className="flex-1"
+              disabled={importing}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {importing ? 'Importing…' : 'Choose CSV File'}
+            </Button>
+          )}
         </div>
       </div>
     </div>

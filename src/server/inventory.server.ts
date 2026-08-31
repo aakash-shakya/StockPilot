@@ -593,7 +593,7 @@ export async function getSalesHistory(input?: { limit?: number; offset?: number 
     .from(inventoryMovements)
     .innerJoin(products, eq(inventoryMovements.productId, products.id))
     .where(eq(inventoryMovements.type, 'sale'))
-    .orderBy(inventoryMovements.createdAt)
+    .orderBy(desc(inventoryMovements.createdAt))
     .limit(limit)
     .offset(offset)
 
@@ -2129,4 +2129,40 @@ export async function investigateInventory() {
     lowSeverityCount: bySeverity.low,
     issues,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Bulk Create Products (CSV import)
+// ---------------------------------------------------------------------------
+
+export interface BulkProductInput {
+  sku: string
+  name: string
+  category: string
+  supplierId: number
+  costCents: number
+  priceCents: number
+  quantity: number
+  reorderThreshold: number
+}
+
+export async function bulkCreateProducts(items: BulkProductInput[]) {
+  const inserted: { id: number; sku: string }[] = []
+  for (const item of items) {
+    const [row] = await db
+      .insert(products)
+      .values({
+        sku: item.sku,
+        name: item.name,
+        category: item.category,
+        supplierId: item.supplierId,
+        costCents: item.costCents,
+        priceCents: item.priceCents,
+        quantity: item.quantity,
+        reorderThreshold: item.reorderThreshold,
+      })
+      .returning({ id: products.id, sku: products.sku })
+    inserted.push(row)
+  }
+  return { inserted: inserted.length, products: inserted }
 }

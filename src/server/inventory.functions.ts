@@ -441,3 +441,22 @@ export const updateBusinessPolicySchema = z.object({
 export const updateBusinessPolicyFn = createServerFn({ method: 'POST' })
   .inputValidator(updateBusinessPolicySchema)
   .handler(({ data }) => inventory.updateBusinessPolicy(data))
+
+// ---------------------------------------------------------------------------
+// Bulk Create Products (CSV import)
+// ---------------------------------------------------------------------------
+
+export const bulkCreateProductsSchema = z.array(z.object({
+  sku: z.string().min(1),
+  name: z.string().min(1),
+  category: z.string().min(1),
+  supplierId: z.number().int().positive(),
+  costCents: z.number().int().min(0),
+  priceCents: z.number().int().min(0),
+  quantity: z.number().int().min(0),
+  reorderThreshold: z.number().int().min(0),
+}))
+
+export const bulkCreateProductsFn = createServerFn({ method: 'POST' })
+  .inputValidator(bulkCreateProductsSchema)
+  .handler(({ data }) => inventory.bulkCreateProducts(data))

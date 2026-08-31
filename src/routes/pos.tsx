@@ -123,13 +123,13 @@ function PosPage() {
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Search & filter bar */}
         <div className="px-5 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)] flex items-center gap-3">
-          <div className="relative flex-1 max-w-md">
+          <div className="relative w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-ink-muted)]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search products…"
+              placeholder="Search…"
               className="input pl-9 w-full text-sm"
               style={{ fontFamily: 'var(--font-body)' }}
             />
@@ -137,7 +137,7 @@ function PosPage() {
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            className="input text-sm min-w-[140px]"
+            className="input text-sm w-36"
             style={{ fontFamily: 'var(--font-body)' }}
           >
             <option value="">All categories</option>
