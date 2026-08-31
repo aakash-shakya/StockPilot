@@ -1,12 +1,11 @@
 import { useEffect, useState } from 'react'
-import { HeadContent, Outlet, Scripts, createRootRoute, redirect, useRouter, useRouterState } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRoute, useRouter, useRouterState } from '@tanstack/react-router'
 
 import { Sidebar } from '../components/Sidebar.js'
 import { AgentActivityDrawer } from '../components/AgentActivityPanel.js'
 import { ToastProvider } from '../components/ui/Toast.js'
 import { WebMcpProvider } from '../lib/webmcp/WebMcpProvider.js'
 import { agentActivityStore } from '../lib/agent-activity-store.js'
-import { getCurrentUserFn } from '../server/auth.functions.js'
 import '../styles.css'
 
 export const Route = createRootRoute({
@@ -44,22 +43,8 @@ export const Route = createRootRoute({
       },
     ],
   }),
-  beforeLoad: async ({ location }) => {
-    const publicPaths = ['/login', '/register']
-    const isPublic = publicPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'))
-    let user = null
-    try {
-      user = await getCurrentUserFn()
-    } catch (err) {
-      console.error('[root] getCurrentUserFn failed, treating as logged out:', err)
-    }
-    if (!user && !isPublic) {
-      throw redirect({ to: '/login' })
-    }
-    if (user && isPublic) {
-      throw redirect({ to: '/' })
-    }
-    return { user }
+  beforeLoad: async () => {
+    return { user: null }
   },
   pendingComponent: RootLoading,
   shellComponent: RootDocument,
@@ -87,10 +72,17 @@ function RootLoading() {
 
 function RootComponent() {
   const router = useRouter()
-  const { user } = Route.useRouteContext()
+  const [user, setUser] = useState<{ id: number; name: string; email: string; role: string } | null>(null)
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isAuthPage = pathname === '/login' || pathname === '/register'
   const [agentPanelOpen, setAgentPanelOpen] = useState(false)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('stockpilot_user')
+      if (raw) setUser(JSON.parse(raw))
+    } catch { /* ignore */ }
+  }, [pathname])
 
   useEffect(() => {
     const sub = agentActivityStore.subscribe(() => {

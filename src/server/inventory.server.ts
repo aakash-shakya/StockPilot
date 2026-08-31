@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, inArray, lt, not, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, like, inArray, lt, not, or, sql } from 'drizzle-orm'
 import { db } from '../../db/index.js'
 import {
   agentActions,
@@ -37,11 +37,11 @@ async function soldUnitsByProduct(sinceDaysAgo: number, untilDaysAgo: number) {
         eq(inventoryMovements.type, 'sale'),
         gte(
           inventoryMovements.createdAt,
-          sql`now() - interval '${sql.raw(String(sinceDaysAgo))} days'`,
+          sql`cast(unixepoch('now') - ${sinceDaysAgo * 86400} as integer)`,
         ),
         lt(
           inventoryMovements.createdAt,
-          sql`now() - interval '${sql.raw(String(untilDaysAgo))} days'`,
+          sql`cast(unixepoch('now') - ${untilDaysAgo * 86400} as integer)`,
         ),
       ),
     )
@@ -76,7 +76,7 @@ export async function searchProducts(input: { query?: string; category?: string;
   const conditions = []
   if (input.query) {
     conditions.push(
-      or(ilike(products.name, `%${input.query}%`), ilike(products.sku, `%${input.query}%`)),
+      or(like(products.name, `%${input.query}%`), like(products.sku, `%${input.query}%`)),
     )
   }
   if (input.category) {

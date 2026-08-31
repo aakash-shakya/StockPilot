@@ -74,21 +74,19 @@ src/server/inventory.functions.ts ← Zod schemas + TanStack Start server functi
 | Layer | Technology |
 |-------|------------|
 | Framework | TanStack Start (React 19, TanStack Router v1) |
-| Build | Vite 7 |
+| Build | Vite 7 + Nitro |
 | Styling | Tailwind CSS 4 |
-| Database | Netlify Database (managed Postgres) via Drizzle ORM |
+| Database | Neon Postgres via Drizzle ORM |
 | Agent Interface | WebMCP (`@mcp-b/global`) via `document.modelContext.registerTool()` |
 | Language | TypeScript 5.7 (strict mode) |
-| Deployment | Netlify |
+| Deployment | Vercel |
 
 ## Local Development
 
 ```bash
 npm install
-netlify dev
+npm run dev
 ```
-
-Database migrations (`netlify/database/migrations/`) are applied automatically at deploy time.
 
 ## License
 

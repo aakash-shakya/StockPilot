@@ -61,9 +61,8 @@ export function Sidebar({ user, isAgentPanelOpen, onToggleAgentPanel }: SidebarP
   }, [userMenuOpen])
 
   async function handleLogout() {
-    const { logoutFn } = await import('../server/auth.functions.js')
-    await logoutFn()
-    await router.invalidate()
+    localStorage.removeItem('stockpilot_token')
+    localStorage.removeItem('stockpilot_user')
     router.navigate({ to: '/login' })
   }
 
