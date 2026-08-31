@@ -15,12 +15,16 @@ function PurchaseOrdersList() {
   const { purchaseOrders } = Route.useLoaderData()
   const router = useRouter()
   const [busyId, setBusyId] = useState<number | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function approve(id: number) {
     setBusyId(id)
+    setError(null)
     try {
       await approvePurchaseOrderFn({ data: { purchaseOrderId: id } })
       await router.invalidate()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve order')
     } finally {
       setBusyId(null)
     }
@@ -28,9 +32,12 @@ function PurchaseOrdersList() {
 
   async function receive(id: number) {
     setBusyId(id)
+    setError(null)
     try {
       await receiveShipmentFn({ data: { purchaseOrderId: id, actor: 'human' } })
       await router.invalidate()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to receive shipment')
     } finally {
       setBusyId(null)
     }
@@ -48,6 +55,13 @@ function PurchaseOrdersList() {
           {purchaseOrders.length} orders total · {draftCount} draft · {approvedCount} approved · {receivedCount} received
         </p>
       </div>
+
+      {error && (
+        <div className="mb-4 bg-red-50 text-red-700 text-sm px-4 py-3 rounded-xl border border-red-100 flex items-center justify-between">
+          <span>{error}</span>
+          <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 ml-2 text-xs font-medium">Dismiss</button>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {purchaseOrders.map((po) => (
