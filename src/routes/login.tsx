@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { LogIn, PackageSearch } from 'lucide-react'
 import { loginFn } from '../server/auth.functions.js'
 import { Button } from '../components/ui/Button.js'
@@ -14,7 +14,6 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -24,7 +23,7 @@ function LoginPage() {
       const result = await loginFn({ data: { email, password } })
       localStorage.setItem('stockpilot_token', result.token)
       localStorage.setItem('stockpilot_user', JSON.stringify(result.user))
-      router.navigate({ to: '/' })
+      window.location.href = '/'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed')
       setLoading(false)

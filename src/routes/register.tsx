@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { UserPlus, PackageSearch } from 'lucide-react'
 import { registerFn } from '../server/auth.functions.js'
 import { Button } from '../components/ui/Button.js'
@@ -15,7 +15,6 @@ function RegisterPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -25,7 +24,7 @@ function RegisterPage() {
       const result = await registerFn({ data: { email, password, name } })
       localStorage.setItem('stockpilot_token', result.token)
       localStorage.setItem('stockpilot_user', JSON.stringify(result.user))
-      router.navigate({ to: '/' })
+      window.location.href = '/'
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed')
       setLoading(false)
