@@ -96,6 +96,14 @@ function RootComponent() {
   const isAuthPage = pathname === '/login' || pathname === '/register'
   const [agentPanelOpen, setAgentPanelOpen] = useState(false)
 
+  // Client-side auth guard: redirect to login if no token on initial load
+  useEffect(() => {
+    const token = localStorage.getItem('stockpilot_token')
+    if (!token && !isAuthPage) {
+      window.location.href = '/login'
+    }
+  }, [isAuthPage])
+
   useEffect(() => {
     const sub = agentActivityStore.subscribe(() => {
       router.invalidate()
