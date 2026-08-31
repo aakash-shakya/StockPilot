@@ -70,19 +70,20 @@ function RootLoading() {
   )
 }
 
+function getUserFromStorage() {
+  try {
+    const raw = localStorage.getItem('stockpilot_user')
+    if (raw) return JSON.parse(raw)
+  } catch { /* ignore */ }
+  return null
+}
+
 function RootComponent() {
   const router = useRouter()
-  const [user, setUser] = useState<{ id: number; name: string; email: string; role: string } | null>(null)
+  const [user] = useState<{ id: number; name: string; email: string; role: string } | null>(getUserFromStorage)
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isAuthPage = pathname === '/login' || pathname === '/register'
   const [agentPanelOpen, setAgentPanelOpen] = useState(false)
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('stockpilot_user')
-      if (raw) setUser(JSON.parse(raw))
-    } catch { /* ignore */ }
-  }, [pathname])
 
   useEffect(() => {
     const sub = agentActivityStore.subscribe(() => {
