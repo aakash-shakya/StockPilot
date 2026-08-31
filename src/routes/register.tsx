@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, Link, isRedirect } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { UserPlus, PackageSearch } from 'lucide-react'
 import { registerFn } from '../server/auth.functions.js'
 import { Button } from '../components/ui/Button.js'
@@ -21,9 +21,11 @@ function RegisterPage() {
     setError(null)
     setLoading(true)
     try {
-      await registerFn({ data: { email, password, name } })
+      const result = await registerFn({ data: { email, password, name } })
+      localStorage.setItem('stockpilot_token', result.token)
+      localStorage.setItem('stockpilot_user', JSON.stringify(result.user))
+      window.location.href = '/'
     } catch (err) {
-      if (isRedirect(err)) throw err
       setError(err instanceof Error ? err.message : 'Registration failed')
       setLoading(false)
     }

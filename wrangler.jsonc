@@ -1,0 +1,19 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "stockpilot",
+	"compatibility_date": "2026-08-28",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"main": "@tanstack/react-start/server-entry",
+	"observability": {
+		"enabled": true
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "stockpilot",
+			"database_id": "ab16404e-f7c6-41f9-a5f1-e90333321744"
+		}
+	]
+}

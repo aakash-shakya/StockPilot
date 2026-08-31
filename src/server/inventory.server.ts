@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ilike, inArray, lt, not, or, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, like, inArray, lt, not, or, sql } from 'drizzle-orm'
 import { db } from '../../db/index.js'
 import {
   agentActions,
@@ -37,11 +37,11 @@ async function soldUnitsByProduct(sinceDaysAgo: number, untilDaysAgo: number) {
         eq(inventoryMovements.type, 'sale'),
         gte(
           inventoryMovements.createdAt,
-          sql`now() - interval '${sql.raw(String(sinceDaysAgo))} days'`,
+          sql`cast(unixepoch('now') - ${sinceDaysAgo * 86400} as integer)`,
         ),
         lt(
           inventoryMovements.createdAt,
-          sql`now() - interval '${sql.raw(String(untilDaysAgo))} days'`,
+          sql`cast(unixepoch('now') - ${untilDaysAgo * 86400} as integer)`,
         ),
       ),
     )
@@ -76,7 +76,7 @@ export async function searchProducts(input: { query?: string; category?: string;
   const conditions = []
   if (input.query) {
     conditions.push(
-      or(ilike(products.name, `%${input.query}%`), ilike(products.sku, `%${input.query}%`)),
+      or(like(products.name, `%${input.query}%`), like(products.sku, `%${input.query}%`)),
     )
   }
   if (input.category) {
@@ -427,30 +427,194 @@ export async function receiveShipment(input: { purchaseOrderId: number; actor?: 
     .from(purchaseOrderItems)
     .where(eq(purchaseOrderItems.purchaseOrderId, input.purchaseOrderId))
 
-  await db.transaction(async (tx) => {
-    for (const item of items) {
-      await tx
-        .update(products)
-        .set({ quantity: sql`${products.quantity} + ${item.quantity}` })
-        .where(eq(products.id, item.productId))
+  for (const item of items) {
+    await db
+      .update(products)
+      .set({ quantity: sql`${products.quantity} + ${item.quantity}` })
+      .where(eq(products.id, item.productId))
 
-      await tx.insert(inventoryMovements).values({
-        productId: item.productId,
-        type: 'receiving',
-        quantityDelta: item.quantity,
-        note: `Received against ${po.poNumber}`,
-        actor: input.actor ?? 'human',
-      })
-    }
+    await db.insert(inventoryMovements).values({
+      productId: item.productId,
+      type: 'receiving',
+      quantityDelta: item.quantity,
+      note: `Received against ${po.poNumber}`,
+      actor: input.actor ?? 'human',
+    })
+  }
 
-    await tx
-      .update(purchaseOrders)
-      .set({ status: 'received', receivedAt: new Date() })
-      .where(eq(purchaseOrders.id, input.purchaseOrderId))
-  })
+  await db
+    .update(purchaseOrders)
+    .set({ status: 'received', receivedAt: new Date() })
+    .where(eq(purchaseOrders.id, input.purchaseOrderId))
 
   const [full] = await getPurchaseOrders().then((all) => all.filter((p) => p.id === input.purchaseOrderId))
   return full
+}
+
+// ---------------------------------------------------------------------------
+// POS: Sales & Returns
+// ---------------------------------------------------------------------------
+
+export async function processSale(input: {
+  items: Array<{ productId: number; quantity: number; unitPriceCents: number }>
+  actor?: Actor
+}) {
+  if (!input.items.length) throw new Error('Sale must have at least one item')
+
+  const saleLines: Array<{
+    product: typeof products.$inferSelect
+    quantity: number
+    unitPriceCents: number
+    totalCents: number
+  }> = []
+
+  for (const item of input.items) {
+    const [product] = await db.select().from(products).where(eq(products.id, item.productId))
+    if (!product) throw new Error(`Product #${item.productId} not found`)
+    if (product.quantity < item.quantity) {
+      throw new Error(`Insufficient stock for ${product.name}: have ${product.quantity}, need ${item.quantity}`)
+    }
+    saleLines.push({
+      product,
+      quantity: item.quantity,
+      unitPriceCents: item.unitPriceCents,
+      totalCents: item.quantity * item.unitPriceCents,
+    })
+  }
+
+  const movementRecords: Array<typeof inventoryMovements.$inferInsert> = []
+  for (const line of saleLines) {
+    const nextQty = line.product.quantity - line.quantity
+    await db.update(products).set({ quantity: nextQty }).where(eq(products.id, line.product.id))
+    movementRecords.push({
+      productId: line.product.id,
+      type: 'sale',
+      quantityDelta: -line.quantity,
+      note: `POS sale — ${line.quantity}× ${line.product.name} @ $${(line.unitPriceCents / 100).toFixed(2)}`,
+      actor: input.actor ?? 'human',
+    })
+  }
+
+  if (movementRecords.length) {
+    await db.insert(inventoryMovements).values(movementRecords)
+  }
+
+  const totalCents = saleLines.reduce((sum, l) => sum + l.totalCents, 0)
+  return {
+    totalCents,
+    items: saleLines.map((l) => ({
+      productId: l.product.id,
+      name: l.product.name,
+      sku: l.product.sku,
+      quantity: l.quantity,
+      unitPriceCents: l.unitPriceCents,
+      totalCents: l.totalCents,
+      remainingStock: l.product.quantity - l.quantity,
+    })),
+  }
+}
+
+export async function processReturn(input: {
+  items: Array<{ productId: number; quantity: number; unitPriceCents: number }>
+  reason?: string
+  actor?: Actor
+}) {
+  if (!input.items.length) throw new Error('Return must have at least one item')
+
+  const returnLines: Array<{
+    product: typeof products.$inferSelect
+    quantity: number
+    unitPriceCents: number
+    totalCents: number
+  }> = []
+
+  for (const item of input.items) {
+    const [product] = await db.select().from(products).where(eq(products.id, item.productId))
+    if (!product) throw new Error(`Product #${item.productId} not found`)
+    returnLines.push({
+      product,
+      quantity: item.quantity,
+      unitPriceCents: item.unitPriceCents,
+      totalCents: item.quantity * item.unitPriceCents,
+    })
+  }
+
+  const movementRecords: Array<typeof inventoryMovements.$inferInsert> = []
+  for (const line of returnLines) {
+    const nextQty = line.product.quantity + line.quantity
+    await db.update(products).set({ quantity: nextQty }).where(eq(products.id, line.product.id))
+    movementRecords.push({
+      productId: line.product.id,
+      type: 'return',
+      quantityDelta: line.quantity,
+      note: `POS return — ${line.quantity}× ${line.product.name}${input.reason ? ` (${input.reason})` : ''}`,
+      actor: input.actor ?? 'human',
+    })
+  }
+
+  if (movementRecords.length) {
+    await db.insert(inventoryMovements).values(movementRecords)
+  }
+
+  const totalCents = returnLines.reduce((sum, l) => sum + l.totalCents, 0)
+  return {
+    totalCents,
+    items: returnLines.map((l) => ({
+      productId: l.product.id,
+      name: l.product.name,
+      sku: l.product.sku,
+      quantity: l.quantity,
+      unitPriceCents: l.unitPriceCents,
+      totalCents: l.totalCents,
+      newStock: l.product.quantity + l.quantity,
+    })),
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sales history
+// ---------------------------------------------------------------------------
+
+export async function getSalesHistory(input?: { limit?: number; offset?: number }) {
+  const limit = input?.limit ?? 50
+  const offset = input?.offset ?? 0
+
+  const rows = await db
+    .select({
+      id: inventoryMovements.id,
+      productId: inventoryMovements.productId,
+      productName: products.name,
+      productSku: products.sku,
+      quantityDelta: inventoryMovements.quantityDelta,
+      note: inventoryMovements.note,
+      actor: inventoryMovements.actor,
+      createdAt: inventoryMovements.createdAt,
+    })
+    .from(inventoryMovements)
+    .innerJoin(products, eq(inventoryMovements.productId, products.id))
+    .where(eq(inventoryMovements.type, 'sale'))
+    .orderBy(inventoryMovements.createdAt)
+    .limit(limit)
+    .offset(offset)
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(inventoryMovements)
+    .where(eq(inventoryMovements.type, 'sale'))
+
+  return {
+    sales: rows.map((r) => ({
+      id: r.id,
+      productId: r.productId,
+      productName: r.productName,
+      productSku: r.productSku,
+      quantity: Math.abs(r.quantityDelta),
+      note: r.note,
+      actor: r.actor,
+      createdAt: r.createdAt,
+    })),
+    total: countRow?.count ?? 0,
+  }
 }
 
 export async function updateStock(input: {
@@ -471,20 +635,18 @@ export async function updateStock(input: {
   }
 
   let movement: typeof inventoryMovements.$inferSelect
-  await db.transaction(async (tx) => {
-    await tx.update(products).set({ quantity: nextQuantity }).where(eq(products.id, input.productId))
-    const [m] = await tx
-      .insert(inventoryMovements)
-      .values({
-        productId: input.productId,
-        type: input.type,
-        quantityDelta: input.quantityDelta,
-        note: input.note,
-        actor: input.actor ?? 'human',
-      })
-      .returning()
-    movement = m!
-  })
+  await db.update(products).set({ quantity: nextQuantity }).where(eq(products.id, input.productId))
+  const [m] = await db
+    .insert(inventoryMovements)
+    .values({
+      productId: input.productId,
+      type: input.type,
+      quantityDelta: input.quantityDelta,
+      note: input.note,
+      actor: input.actor ?? 'human',
+    })
+    .returning()
+  movement = m!
 
   return { product: { ...product, quantity: nextQuantity }, movement: movement! }
 }
@@ -528,6 +690,23 @@ export async function getRecentAgentActivity(limit = 30, userId?: number | null)
 
 export async function getSuppliers() {
   return db.select().from(suppliers).orderBy(suppliers.name)
+}
+
+export async function createSupplier(data: {
+  name: string
+  contactEmail: string
+  leadTimeDays?: number
+  delayDays?: number
+  delayNote?: string
+}) {
+  const result = await db.insert(suppliers).values({
+    name: data.name,
+    contactEmail: data.contactEmail,
+    leadTimeDays: data.leadTimeDays ?? 7,
+    delayDays: data.delayDays ?? 0,
+    delayNote: data.delayNote ?? null,
+  }).returning()
+  return result[0]
 }
 
 // ---------------------------------------------------------------------------
@@ -1193,33 +1372,31 @@ export async function createReplenishmentProposals(input: { category?: string; d
   if (!plan.groupedBySupplier.length) return []
 
   const proposals: Array<typeof agentActions.$inferSelect> = []
-  await db.transaction(async (tx) => {
-    for (const group of plan.groupedBySupplier) {
-      const [action] = await tx
-        .insert(agentActions)
-        .values({
-          type: 'replenishment',
-          title: `Replenish ${group.items.length} product(s) from ${group.supplierName}`,
-          reasoning: group.items
-            .map(
-              (item: ReplanItem) =>
-                `${item.name}: ${item.coverageDays ?? 0} day(s) of coverage left, ${item.riskLevel} risk — order ${item.suggestedQuantity} unit(s). ${item.recommendationReason ?? ''}`,
-            )
-            .join(' '),
-          impact: group.subtotalCents > 200000 ? 'high' : group.subtotalCents > 50000 ? 'medium' : 'low',
-          payload: JSON.stringify({
-            supplierId: group.supplierId,
-            items: group.items.map((item: ReplanItem) => ({ productId: item.productId, quantity: item.suggestedQuantity })),
-            notes: 'Smart Replenishment proposal',
-          }),
-          relatedProductIds: JSON.stringify(group.items.map((item: ReplanItem) => item.productId)),
-          estimatedCostCents: group.subtotalCents,
-          proposedBy: 'agent',
-        })
-        .returning()
-      proposals.push(action)
-    }
-  })
+  for (const group of plan.groupedBySupplier) {
+    const [action] = await db
+      .insert(agentActions)
+      .values({
+        type: 'replenishment',
+        title: `Replenish ${group.items.length} product(s) from ${group.supplierName}`,
+        reasoning: group.items
+          .map(
+            (item: ReplanItem) =>
+              `${item.name}: ${item.coverageDays ?? 0} day(s) of coverage left, ${item.riskLevel} risk — order ${item.suggestedQuantity} unit(s). ${item.recommendationReason ?? ''}`,
+          )
+          .join(' '),
+        impact: group.subtotalCents > 200000 ? 'high' : group.subtotalCents > 50000 ? 'medium' : 'low',
+        payload: JSON.stringify({
+          supplierId: group.supplierId,
+          items: group.items.map((item: ReplanItem) => ({ productId: item.productId, quantity: item.suggestedQuantity })),
+          notes: 'Smart Replenishment proposal',
+        }),
+        relatedProductIds: JSON.stringify(group.items.map((item: ReplanItem) => item.productId)),
+        estimatedCostCents: group.subtotalCents,
+        proposedBy: 'agent',
+      })
+      .returning()
+    proposals.push(action)
+  }
   return proposals
 }
 
@@ -1534,7 +1711,7 @@ export async function getInventoryMovements(input: { productId?: number; type?: 
 export async function revertMovement(input: { movementId: number; actor?: Actor }) {
   const [movement] = await db.select().from(inventoryMovements).where(eq(inventoryMovements.id, input.movementId))
   if (!movement) throw new Error('Unknown movement')
-  if (movement.type === 'sale' || movement.type === 'receiving') {
+  if (movement.type === 'sale' || movement.type === 'return' || movement.type === 'receiving') {
     throw new Error(`Cannot revert a ${movement.type} movement — only manual adjustments and transfers can be undone`)
   }
 
@@ -1548,20 +1725,18 @@ export async function revertMovement(input: { movementId: number; actor?: Actor 
   }
 
   let reversal: typeof inventoryMovements.$inferSelect
-  await db.transaction(async (tx) => {
-    await tx.update(products).set({ quantity: nextQuantity }).where(eq(products.id, product.id))
-    const [r] = await tx
-      .insert(inventoryMovements)
-      .values({
-        productId: product.id,
-        type: movement.type,
-        quantityDelta: reversedDelta,
-        note: `Reverted movement #${movement.id}${movement.note ? ` (${movement.note})` : ''}`,
-        actor: input.actor ?? 'human',
-      })
-      .returning()
-    reversal = r!
-  })
+  await db.update(products).set({ quantity: nextQuantity }).where(eq(products.id, product.id))
+  const [r] = await db
+    .insert(inventoryMovements)
+    .values({
+      productId: product.id,
+      type: movement.type,
+      quantityDelta: reversedDelta,
+      note: `Reverted movement #${movement.id}${movement.note ? ` (${movement.note})` : ''}`,
+      actor: input.actor ?? 'human',
+    })
+    .returning()
+  reversal = r!
 
   return { product: { ...product, quantity: nextQuantity }, reversal: reversal! }
 }

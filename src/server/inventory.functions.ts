@@ -1,5 +1,4 @@
 import { createServerFn } from '@tanstack/react-start'
-import { getCookie } from '@tanstack/react-start/server'
 import { z } from 'zod'
 import * as inventory from './inventory.server.js'
 import * as auth from './auth.server.js'
@@ -37,7 +36,7 @@ export const getPurchaseOrdersSchema = z.object({
 })
 export const getInventoryMovementsSchema = z.object({
   productId: z.number().int().positive().optional().describe('Filter by product'),
-  type: z.enum(['sale', 'restock', 'adjustment', 'transfer_in', 'transfer_out', 'receiving']).optional().describe('Movement type'),
+  type: z.enum(['sale', 'return', 'restock', 'adjustment', 'transfer_in', 'transfer_out', 'receiving']).optional().describe('Movement type'),
   limit: z.number().int().min(1).max(100).optional().describe('Max rows, default 50'),
 })
 export const getSuppliersSchema = z.object({})
@@ -173,6 +172,18 @@ export const getPurchaseOrdersFn = createServerFn({ method: 'GET' })
 
 export const getSuppliersFn = createServerFn({ method: 'GET' }).handler(() => inventory.getSuppliers())
 
+export const createSupplierFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      name: z.string().min(1),
+      contactEmail: z.string().email(),
+      leadTimeDays: z.number().int().min(1).optional().default(7),
+      delayDays: z.number().int().min(0).optional().default(0),
+      delayNote: z.string().optional(),
+    }),
+  )
+  .handler(({ data }) => inventory.createSupplier(data))
+
 export const createPurchaseOrderFn = createServerFn({ method: 'POST' })
   .inputValidator(createPurchaseOrderSchema)
   .handler(({ data }) => inventory.createPurchaseOrder(data))
@@ -185,9 +196,47 @@ export const receiveShipmentFn = createServerFn({ method: 'POST' })
   .inputValidator(receiveShipmentSchema)
   .handler(({ data }) => inventory.receiveShipment(data))
 
+export const processSaleFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      items: z.array(
+        z.object({
+          productId: z.number().int().positive(),
+          quantity: z.number().int().positive(),
+          unitPriceCents: z.number().int().min(0),
+        }),
+      ).min(1),
+    }),
+  )
+  .handler(({ data }) => inventory.processSale(data))
+
+export const processReturnFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      items: z.array(
+        z.object({
+          productId: z.number().int().positive(),
+          quantity: z.number().int().positive(),
+          unitPriceCents: z.number().int().min(0),
+        }),
+      ).min(1),
+      reason: z.string().optional(),
+    }),
+  )
+  .handler(({ data }) => inventory.processReturn(data))
+
 export const updateStockFn = createServerFn({ method: 'POST' })
   .inputValidator(updateStockSchema)
   .handler(({ data }) => inventory.updateStock(data))
+
+export const getSalesHistoryFn = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      limit: z.number().int().min(1).max(200).optional().default(50),
+      offset: z.number().int().min(0).optional().default(0),
+    }).optional(),
+  )
+  .handler(({ data }) => inventory.getSalesHistory(data))
 
 export const logAgentToolCallFn = createServerFn({ method: 'POST' })
   .inputValidator(
@@ -196,14 +245,14 @@ export const logAgentToolCallFn = createServerFn({ method: 'POST' })
       input: z.unknown(),
       summary: z.string(),
       consequential: z.boolean(),
+      token: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {
     let userId: number | null = null
     try {
-      const token = getCookie(auth.getSessionCookieName())
-      if (token) {
-        const user = await auth.validateSessionToken(token)
+      if (data.token) {
+        const user = await auth.validateSessionToken(data.token)
         if (user) userId = user.id
       }
     } catch {}
@@ -282,15 +331,17 @@ export const proposeAgentActionFn = createServerFn({ method: 'POST' })
   .handler(({ data }) => inventory.proposeAgentAction(data))
 
 export const decideAgentActionFn = createServerFn({ method: 'POST' })
-  .inputValidator(decideAgentActionSchema)
+  .inputValidator(decideAgentActionSchema.extend({ token: z.string().optional() }))
   .handler(async ({ data }) => {
-    // Server-derived actor — never trust client-supplied decidedBy (impersonation fix D4)
-    const { getCookie } = await import('@tanstack/react-start/server')
-    const { validateSessionToken, getSessionCookieName } = await import('./auth.server.js')
-    const token = getCookie(getSessionCookieName())
-    const user = token ? await validateSessionToken(token) : null
-    const decidedBy = user ? (user.name as string) : 'human'
-    return inventory.decideAgentAction({ ...data, decidedBy } as any)
+    const { token, ...rest } = data
+    let decidedBy = 'human'
+    try {
+      if (token) {
+        const user = await auth.validateSessionToken(token)
+        if (user) decidedBy = user.name as string
+      }
+    } catch {}
+    return inventory.decideAgentAction({ ...rest, decidedBy } as any)
   })
 
 // ---------------------------------------------------------------------------

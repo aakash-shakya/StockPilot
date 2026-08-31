@@ -1,4 +1,7 @@
-# Local Netlify folder
-.netlify
 dist/
+.wrangler/
+.dev.vars
+.output/
 node_modules/
+.netlify/
+drizzle/meta/

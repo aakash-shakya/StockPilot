@@ -9,63 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SuppliersRouteImport } from './routes/suppliers'
-import { Route as SimulatorRouteImport } from './routes/simulator'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as RegisterRouteImport } from './routes/register'
-import { Route as PurchaseOrdersRouteImport } from './routes/purchase-orders'
-import { Route as ProductsRouteImport } from './routes/products'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as HealthRouteImport } from './routes/health'
-import { Route as AgentToolsRouteImport } from './routes/agent-tools'
-import { Route as AgentActionsRouteImport } from './routes/agent-actions'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProductsNewRouteImport } from './routes/products.new'
+import { Route as AgentActionsRouteImport } from './routes/agent-actions'
+import { Route as AgentToolsRouteImport } from './routes/agent-tools'
+import { Route as HealthRouteImport } from './routes/health'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as PosRouteImport } from './routes/pos'
+import { Route as ProductsRouteImport } from './routes/products'
+import { Route as PurchaseOrdersRouteImport } from './routes/purchase-orders'
+import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as SalesRouteImport } from './routes/sales'
+import { Route as SimulatorRouteImport } from './routes/simulator'
+import { Route as SuppliersRouteImport } from './routes/suppliers'
 import { Route as ProductsProductIdRouteImport } from './routes/products.$productId'
+import { Route as ProductsNewRouteImport } from './routes/products.new'
 
-const SuppliersRoute = SuppliersRouteImport.update({
-  id: '/suppliers',
-  path: '/suppliers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SimulatorRoute = SimulatorRouteImport.update({
-  id: '/simulator',
-  path: '/simulator',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RegisterRoute = RegisterRouteImport.update({
-  id: '/register',
-  path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PurchaseOrdersRoute = PurchaseOrdersRouteImport.update({
-  id: '/purchase-orders',
-  path: '/purchase-orders',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProductsRoute = ProductsRouteImport.update({
-  id: '/products',
-  path: '/products',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HealthRoute = HealthRouteImport.update({
-  id: '/health',
-  path: '/health',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentToolsRoute = AgentToolsRouteImport.update({
-  id: '/agent-tools',
-  path: '/agent-tools',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgentActionsRoute = AgentActionsRouteImport.update({
@@ -73,19 +35,69 @@ const AgentActionsRoute = AgentActionsRouteImport.update({
   path: '/agent-actions',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AgentToolsRoute = AgentToolsRouteImport.update({
+  id: '/agent-tools',
+  path: '/agent-tools',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductsNewRoute = ProductsNewRouteImport.update({
-  id: '/new',
-  path: '/new',
-  getParentRoute: () => ProductsRoute,
+const HealthRoute = HealthRouteImport.update({
+  id: '/health',
+  path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PosRoute = PosRouteImport.update({
+  id: '/pos',
+  path: '/pos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsRoute = ProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PurchaseOrdersRoute = PurchaseOrdersRouteImport.update({
+  id: '/purchase-orders',
+  path: '/purchase-orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesRoute = SalesRouteImport.update({
+  id: '/sales',
+  path: '/sales',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SimulatorRoute = SimulatorRouteImport.update({
+  id: '/simulator',
+  path: '/simulator',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuppliersRoute = SuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsProductIdRoute = ProductsProductIdRouteImport.update({
   id: '/$productId',
   path: '/$productId',
+  getParentRoute: () => ProductsRoute,
+} as any)
+const ProductsNewRoute = ProductsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
   getParentRoute: () => ProductsRoute,
 } as any)
 
@@ -95,10 +107,12 @@ export interface FileRoutesByFullPath {
   '/agent-tools': typeof AgentToolsRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
+  '/pos': typeof PosRoute
   '/products': typeof ProductsRouteWithChildren
   '/purchase-orders': typeof PurchaseOrdersRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
+  '/sales': typeof SalesRoute
   '/simulator': typeof SimulatorRoute
   '/suppliers': typeof SuppliersRoute
   '/products/$productId': typeof ProductsProductIdRoute
@@ -110,10 +124,12 @@ export interface FileRoutesByTo {
   '/agent-tools': typeof AgentToolsRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
+  '/pos': typeof PosRoute
   '/products': typeof ProductsRouteWithChildren
   '/purchase-orders': typeof PurchaseOrdersRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
+  '/sales': typeof SalesRoute
   '/simulator': typeof SimulatorRoute
   '/suppliers': typeof SuppliersRoute
   '/products/$productId': typeof ProductsProductIdRoute
@@ -126,10 +142,12 @@ export interface FileRoutesById {
   '/agent-tools': typeof AgentToolsRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
+  '/pos': typeof PosRoute
   '/products': typeof ProductsRouteWithChildren
   '/purchase-orders': typeof PurchaseOrdersRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
+  '/sales': typeof SalesRoute
   '/simulator': typeof SimulatorRoute
   '/suppliers': typeof SuppliersRoute
   '/products/$productId': typeof ProductsProductIdRoute
@@ -143,10 +161,12 @@ export interface FileRouteTypes {
     | '/agent-tools'
     | '/health'
     | '/login'
+    | '/pos'
     | '/products'
     | '/purchase-orders'
     | '/register'
     | '/reports'
+    | '/sales'
     | '/simulator'
     | '/suppliers'
     | '/products/$productId'
@@ -158,10 +178,12 @@ export interface FileRouteTypes {
     | '/agent-tools'
     | '/health'
     | '/login'
+    | '/pos'
     | '/products'
     | '/purchase-orders'
     | '/register'
     | '/reports'
+    | '/sales'
     | '/simulator'
     | '/suppliers'
     | '/products/$productId'
@@ -173,10 +195,12 @@ export interface FileRouteTypes {
     | '/agent-tools'
     | '/health'
     | '/login'
+    | '/pos'
     | '/products'
     | '/purchase-orders'
     | '/register'
     | '/reports'
+    | '/sales'
     | '/simulator'
     | '/suppliers'
     | '/products/$productId'
@@ -189,77 +213,23 @@ export interface RootRouteChildren {
   AgentToolsRoute: typeof AgentToolsRoute
   HealthRoute: typeof HealthRoute
   LoginRoute: typeof LoginRoute
+  PosRoute: typeof PosRoute
   ProductsRoute: typeof ProductsRouteWithChildren
   PurchaseOrdersRoute: typeof PurchaseOrdersRoute
   RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
+  SalesRoute: typeof SalesRoute
   SimulatorRoute: typeof SimulatorRoute
   SuppliersRoute: typeof SuppliersRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/suppliers': {
-      id: '/suppliers'
-      path: '/suppliers'
-      fullPath: '/suppliers'
-      preLoaderRoute: typeof SuppliersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/simulator': {
-      id: '/simulator'
-      path: '/simulator'
-      fullPath: '/simulator'
-      preLoaderRoute: typeof SimulatorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/register': {
-      id: '/register'
-      path: '/register'
-      fullPath: '/register'
-      preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/purchase-orders': {
-      id: '/purchase-orders'
-      path: '/purchase-orders'
-      fullPath: '/purchase-orders'
-      preLoaderRoute: typeof PurchaseOrdersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/products': {
-      id: '/products'
-      path: '/products'
-      fullPath: '/products'
-      preLoaderRoute: typeof ProductsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/health': {
-      id: '/health'
-      path: '/health'
-      fullPath: '/health'
-      preLoaderRoute: typeof HealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agent-tools': {
-      id: '/agent-tools'
-      path: '/agent-tools'
-      fullPath: '/agent-tools'
-      preLoaderRoute: typeof AgentToolsRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agent-actions': {
@@ -269,25 +239,95 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentActionsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/agent-tools': {
+      id: '/agent-tools'
+      path: '/agent-tools'
+      fullPath: '/agent-tools'
+      preLoaderRoute: typeof AgentToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/products/new': {
-      id: '/products/new'
-      path: '/new'
-      fullPath: '/products/new'
-      preLoaderRoute: typeof ProductsNewRouteImport
-      parentRoute: typeof ProductsRoute
+    '/health': {
+      id: '/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof HealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pos': {
+      id: '/pos'
+      path: '/pos'
+      fullPath: '/pos'
+      preLoaderRoute: typeof PosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products': {
+      id: '/products'
+      path: '/products'
+      fullPath: '/products'
+      preLoaderRoute: typeof ProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/purchase-orders': {
+      id: '/purchase-orders'
+      path: '/purchase-orders'
+      fullPath: '/purchase-orders'
+      preLoaderRoute: typeof PurchaseOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sales': {
+      id: '/sales'
+      path: '/sales'
+      fullPath: '/sales'
+      preLoaderRoute: typeof SalesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/simulator': {
+      id: '/simulator'
+      path: '/simulator'
+      fullPath: '/simulator'
+      preLoaderRoute: typeof SimulatorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/suppliers': {
+      id: '/suppliers'
+      path: '/suppliers'
+      fullPath: '/suppliers'
+      preLoaderRoute: typeof SuppliersRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/products/$productId': {
       id: '/products/$productId'
       path: '/$productId'
       fullPath: '/products/$productId'
       preLoaderRoute: typeof ProductsProductIdRouteImport
+      parentRoute: typeof ProductsRoute
+    }
+    '/products/new': {
+      id: '/products/new'
+      path: '/new'
+      fullPath: '/products/new'
+      preLoaderRoute: typeof ProductsNewRouteImport
       parentRoute: typeof ProductsRoute
     }
   }
@@ -313,10 +353,12 @@ const rootRouteChildren: RootRouteChildren = {
   AgentToolsRoute: AgentToolsRoute,
   HealthRoute: HealthRoute,
   LoginRoute: LoginRoute,
+  PosRoute: PosRoute,
   ProductsRoute: ProductsRouteWithChildren,
   PurchaseOrdersRoute: PurchaseOrdersRoute,
   RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
+  SalesRoute: SalesRoute,
   SimulatorRoute: SimulatorRoute,
   SuppliersRoute: SuppliersRoute,
 }

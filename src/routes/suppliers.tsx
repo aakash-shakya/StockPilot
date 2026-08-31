@@ -1,8 +1,11 @@
 import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
-import { compareSuppliersFn, getSupplierIntelligenceFn, searchProductsFn } from '../server/inventory.functions.js'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
+import { Plus, X } from 'lucide-react'
+import { compareSuppliersFn, createSupplierFn, getSupplierIntelligenceFn, searchProductsFn } from '../server/inventory.functions.js'
 import { formatMoney } from '../server/format.js'
 import { Badge } from '../components/ui/Badge.js'
+import { Button } from '../components/ui/Button.js'
+import { Card } from '../components/ui/Card.js'
 
 export const Route = createFileRoute('/suppliers')({
   component: SuppliersPage,
@@ -14,9 +17,14 @@ export const Route = createFileRoute('/suppliers')({
 
 function SuppliersPage() {
   const { intelligence, products } = Route.useLoaderData()
+  const router = useRouter()
   const [productId, setProductId] = useState<number | ''>('')
   const [comparison, setComparison] = useState<Awaited<ReturnType<typeof compareSuppliersFn>> | null>(null)
   const [loading, setLoading] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addForm, setAddForm] = useState({ name: '', contactEmail: '', leadTimeDays: '7', delayDays: '0', delayNote: '' })
+  const [addLoading, setAddLoading] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
 
   async function handleSelect(id: string) {
     if (!id) {
@@ -35,6 +43,30 @@ function SuppliersPage() {
     }
   }
 
+  async function handleAddSupplier(e: React.FormEvent) {
+    e.preventDefault()
+    setAddError(null)
+    setAddLoading(true)
+    try {
+      await createSupplierFn({
+        data: {
+          name: addForm.name,
+          contactEmail: addForm.contactEmail,
+          leadTimeDays: Number(addForm.leadTimeDays) || 7,
+          delayDays: Number(addForm.delayDays) || 0,
+          delayNote: addForm.delayNote || undefined,
+        },
+      })
+      setShowAddModal(false)
+      setAddForm({ name: '', contactEmail: '', leadTimeDays: '7', delayDays: '0', delayNote: '' })
+      await router.invalidate()
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Failed to add supplier')
+    } finally {
+      setAddLoading(false)
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-8">
       <div className="mb-6">
@@ -45,7 +77,12 @@ function SuppliersPage() {
       <div className="panel panel-shadow overflow-hidden mb-8">
         <div className="card-header-slate px-5 py-3 flex items-center justify-between">
           <h2 className="text-xs font-semibold text-slate-700 uppercase tracking-wider" style={{ fontFamily: 'var(--font-heading)' }}>Supplier intelligence</h2>
-          <Badge variant="default">{intelligence.length} suppliers</Badge>
+          <div className="flex items-center gap-3">
+            <Badge variant="default">{intelligence.length} suppliers</Badge>
+            <Button variant="accent" size="sm" onClick={() => setShowAddModal(true)} icon={<Plus className="w-3.5 h-3.5" />}>
+              Add Supplier
+            </Button>
+          </div>
         </div>
         <div className="overflow-x-auto scrollbar-none">
           <table className="w-full text-sm">
@@ -147,6 +184,86 @@ function SuppliersPage() {
         )}
         </div>
       </div>
+
+      {/* Add Supplier Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowAddModal(false)} />
+          <Card className="relative w-full max-w-lg mx-4 p-0 shadow-2xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
+              <h3 className="text-base font-semibold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>Add Supplier</h3>
+              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddSupplier} className="p-5 space-y-4">
+              {addError && (
+                <div className="text-sm bg-red-50 text-red-700 px-3 py-2.5 rounded-lg border border-red-100">{addError}</div>
+              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2">
+                  <label className="text-xs font-medium block mb-1 text-slate-600">Supplier name *</label>
+                  <input
+                    type="text"
+                    value={addForm.name}
+                    onChange={(e) => setAddForm((f) => ({ ...f, name: e.target.value }))}
+                    placeholder="Acme Supplies"
+                    className="input"
+                    required
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs font-medium block mb-1 text-slate-600">Contact email *</label>
+                  <input
+                    type="email"
+                    value={addForm.contactEmail}
+                    onChange={(e) => setAddForm((f) => ({ ...f, contactEmail: e.target.value }))}
+                    placeholder="sales@acme.com"
+                    className="input"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1 text-slate-600">Lead time (days)</label>
+                  <input
+                    type="number"
+                    value={addForm.leadTimeDays}
+                    onChange={(e) => setAddForm((f) => ({ ...f, leadTimeDays: e.target.value }))}
+                    min={1}
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1 text-slate-600">Delay (days)</label>
+                  <input
+                    type="number"
+                    value={addForm.delayDays}
+                    onChange={(e) => setAddForm((f) => ({ ...f, delayDays: e.target.value }))}
+                    min={0}
+                    className="input"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-xs font-medium block mb-1 text-slate-600">Delay note (optional)</label>
+                  <textarea
+                    value={addForm.delayNote}
+                    onChange={(e) => setAddForm((f) => ({ ...f, delayNote: e.target.value }))}
+                    placeholder="e.g. Known seasonal delays in Q4"
+                    className="input min-h-[60px] resize-y"
+                    rows={2}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="ghost" onClick={() => setShowAddModal(false)}>Cancel</Button>
+                <Button type="submit" variant="primary" disabled={addLoading}>
+                  {addLoading ? 'Adding…' : 'Add supplier'}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

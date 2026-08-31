@@ -56,6 +56,8 @@ import {
   proposeReplenishmentSchema,
   queryInventorySchema,
   queryInventoryFn,
+  processSaleFn,
+  processReturnFn,
   receiveShipmentSchema,
   receiveShipmentFn,
   recommendReorderSchema,
@@ -74,6 +76,10 @@ import {
   whatShouldIWorryAboutFn,
 } from '../../server/inventory.functions.js'
 import { beginActivity, completeActivity, failActivity } from '../agent-activity-store.js'
+
+function formatMoneyTool(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`
+}
 
 function toJsonSchema(schema: any): Record<string, unknown> {
   const json = zodToJsonSchema(schema, { target: 'jsonSchema7', $refStrategy: 'none' }) as any
@@ -849,6 +855,71 @@ const MUTATE_TOOLS: ToolDef[] = [
       return { summary: `Reverted movement #${input.movementId} — ${result.product.name} is now ${result.product.quantity} units`, payload: result }
     },
   },
+  {
+    name: 'create_sale',
+    title: 'Record a sale (POS)',
+    description:
+      'Record a point-of-sale transaction: decrement stock for each item and log sale movements. This is CONSEQUENTIAL — it reduces real inventory counts. Use this when the agent processes a sale on behalf of the shop owner, or when the owner asks to ring up items. Confirm quantities and prices before calling.',
+    inputSchema: toJsonSchema(
+      z.object({
+        items: z.array(
+          z.object({
+            productId: z.number().int().positive().describe('Product ID'),
+            quantity: z.number().int().positive().describe('Quantity sold'),
+            unitPriceCents: z.number().int().min(0).describe('Unit price in cents'),
+          }),
+        ).min(1).describe('Items in the sale'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Record a sale (POS)',
+    },
+    readOnly: false,
+    run: async (input) => {
+      const result = await processSaleFn({ data: { ...input, actor: 'agent' } })
+      return {
+        summary: `Sale completed — ${result.items.length} item(s), total ${formatMoneyTool(result.totalCents)}`,
+        payload: result,
+      }
+    },
+  },
+  {
+    name: 'process_return',
+    title: 'Process a return (POS)',
+    description:
+      'Process a customer return: increment stock for each returned item and log return movements. This is CONSEQUENTIAL — it changes real inventory counts. Use when a customer returns a product. Confirm the items and reason before calling.',
+    inputSchema: toJsonSchema(
+      z.object({
+        items: z.array(
+          z.object({
+            productId: z.number().int().positive().describe('Product ID'),
+            quantity: z.number().int().positive().describe('Quantity returned'),
+            unitPriceCents: z.number().int().min(0).describe('Original unit price in cents'),
+          }),
+        ).min(1).describe('Items being returned'),
+        reason: z.string().optional().describe('Reason for the return'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Process a return (POS)',
+    },
+    readOnly: false,
+    run: async (input) => {
+      const result = await processReturnFn({ data: { ...input, actor: 'agent' } })
+      return {
+        summary: `Return processed — ${result.items.length} item(s), refund ${formatMoneyTool(result.totalCents)}`,
+        payload: result,
+      }
+    },
+  },
 ]
 
 // ---------------------------------------------------------------------------
@@ -864,10 +935,10 @@ const NAVIGATE_TOOLS: ToolDef[] = [
     name: 'navigate_to',
     title: 'Navigate to a page',
     description:
-      'Navigate the user to a specific page in the app. Use this to direct the user to a product detail page, the dashboard, purchase orders, or any other route. The agent should navigate after presenting information so the user can see the relevant page.',
+      'Navigate the user to any page in the app. Supports all routes: "/", "/products", "/products/:id", "/purchase-orders", "/suppliers", "/simulator", "/agent-tools". Use this to direct the user to a product detail page, the dashboard, or any other route. The agent should navigate after presenting information so the user can see the relevant page.',
     inputSchema: toJsonSchema(
       z.object({
-        path: z.enum(['/', '/products', '/purchase-orders']).describe('Route path to navigate to'),
+        path: z.string().describe('Route path to navigate to (e.g. "/", "/products", "/products/3")'),
       }),
     ),
     annotations: {
@@ -913,9 +984,10 @@ const NAVIGATE_TOOLS: ToolDef[] = [
     name: 'scroll_to_section',
     title: 'Scroll to a section of the page',
     description:
-      'Scroll the page to a specific section by heading text or element ID. Use this to direct the user\'s attention to a particular area of the dashboard — e.g. "Stock Health", "At-Risk Products", or "Agent Activity".',
+      'Scroll the page to a specific section. Can target by CSS selector, heading text, or element ID. Use this to direct the user\'s attention to a particular area — e.g. a product table, a form, a specific card, or a heading like "Stock Health".',
     inputSchema: toJsonSchema(
       z.object({
+        selector: z.string().optional().describe('CSS selector to scroll to (e.g. "table", "#my-id", ".card")'),
         headingText: z.string().optional().describe('Heading text to scroll to (e.g. "Stock Health")'),
         elementId: z.string().optional().describe('DOM element ID to scroll to'),
       }),
@@ -930,7 +1002,9 @@ const NAVIGATE_TOOLS: ToolDef[] = [
     readOnly: true,
     run: async (input) => {
       let target: Element | null = null
-      if (input.elementId) {
+      if (input.selector) {
+        target = document.querySelector(input.selector)
+      } else if (input.elementId) {
         target = document.getElementById(input.elementId)
       } else if (input.headingText) {
         const headings = document.querySelectorAll('h1, h2, h3, h4')
@@ -943,12 +1017,305 @@ const NAVIGATE_TOOLS: ToolDef[] = [
       }
       if (!target) {
         return {
-          summary: `Could not find section: ${input.elementId ?? input.headingText}`,
-          payload: { scrolled: false, error: 'Section not found' },
+          summary: `Could not find element: ${input.selector ?? input.elementId ?? input.headingText}`,
+          payload: { scrolled: false, error: 'Element not found' },
         }
       }
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return { summary: `Scrolled to ${input.elementId ?? input.headingText}`, payload: { scrolled: true } }
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return { summary: `Scrolled to ${input.selector ?? input.elementId ?? input.headingText}`, payload: { scrolled: true } }
+    },
+  },
+  {
+    name: 'fill_input',
+    title: 'Fill a form input',
+    description:
+      'Fill a text input, textarea, or number input on the page. Target by CSS selector or by the label/placehoder text next to it. Dispatches React-compatible events so controlled components update. Use after navigate_to to direct the agent to a form page.',
+    inputSchema: toJsonSchema(
+      z.object({
+        selector: z.string().optional().describe('CSS selector of the input (e.g. "#email", "input[name=\'email\']")'),
+        labelText: z.string().optional().describe('Label or placeholder text of the input to find (e.g. "Contact email")'),
+        value: z.string().describe('Value to fill in'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Fill a form input',
+    },
+    readOnly: false,
+    run: async (input) => {
+      let el: HTMLInputElement | HTMLTextAreaElement | null = null
+      if (input.selector) {
+        el = document.querySelector(input.selector) as HTMLInputElement | HTMLTextAreaElement | null
+      } else if (input.labelText) {
+        const labels = document.querySelectorAll('label')
+        for (const label of labels) {
+          if (label.textContent?.toLowerCase().includes(input.labelText!.toLowerCase())) {
+            const forId = label.getAttribute('for')
+            if (forId) el = document.getElementById(forId) as HTMLInputElement | HTMLTextAreaElement
+            else el = label.querySelector('input, textarea') as HTMLInputElement | HTMLTextAreaElement
+            if (el) break
+          }
+        }
+        if (!el) {
+          const inputs = document.querySelectorAll('input, textarea') as NodeListOf<HTMLInputElement | HTMLTextAreaElement>
+          for (const inp of inputs) {
+            const ph = inp.getAttribute('placeholder') || ''
+            if (ph.toLowerCase().includes(input.labelText!.toLowerCase())) {
+              el = inp
+              break
+            }
+          }
+        }
+      }
+      if (!el) {
+        return { summary: `Input not found: ${input.selector ?? input.labelText}`, payload: { filled: false, error: 'Input not found' } }
+      }
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+        ?? Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set
+      nativeInputValueSetter?.call(el, input.value)
+      el.dispatchEvent(new Event('input', { bubbles: true }))
+      el.dispatchEvent(new Event('change', { bubbles: true }))
+      el.dispatchEvent(new Event('blur', { bubbles: true }))
+      return { summary: `Filled "${input.selector ?? input.labelText}" with "${input.value}"`, payload: { filled: true } }
+    },
+  },
+  {
+    name: 'type_text',
+    title: 'Type text into a focused input',
+    description:
+      'Focus an input and type text character by character, simulating real keyboard input. Best for React-controlled inputs where fill_input might not trigger state updates. Fires keydown, keypress, input, and keyup events for each character.',
+    inputSchema: toJsonSchema(
+      z.object({
+        selector: z.string().optional().describe('CSS selector of the input to type into'),
+        labelText: z.string().optional().describe('Label or placeholder text to find the input'),
+        text: z.string().describe('Text to type'),
+        delayMs: z.number().optional().default(30).describe('Delay between keystrokes in ms'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Type text into a focused input',
+    },
+    readOnly: false,
+    run: async (input) => {
+      let el: HTMLInputElement | HTMLTextAreaElement | null = null
+      if (input.selector) {
+        el = document.querySelector(input.selector) as HTMLInputElement | HTMLTextAreaElement | null
+      } else if (input.labelText) {
+        const labels = document.querySelectorAll('label')
+        for (const label of labels) {
+          if (label.textContent?.toLowerCase().includes(input.labelText!.toLowerCase())) {
+            const forId = label.getAttribute('for')
+            if (forId) el = document.getElementById(forId) as HTMLInputElement | HTMLTextAreaElement
+            else el = label.querySelector('input, textarea') as HTMLInputElement | HTMLTextAreaElement
+            if (el) break
+          }
+        }
+      }
+      if (!el) {
+        return { summary: `Input not found: ${input.selector ?? input.labelText}`, payload: { typed: false, error: 'Input not found' } }
+      }
+      el.focus()
+      el.dispatchEvent(new Event('focus', { bubbles: true }))
+      for (const char of input.text) {
+        el.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }))
+        el.dispatchEvent(new KeyboardEvent('keypress', { key: char, bubbles: true }))
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
+          ?? Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')?.set
+        nativeSetter?.call(el, el.value + char)
+        el.dispatchEvent(new Event('input', { bubbles: true }))
+        el.dispatchEvent(new KeyboardEvent('keyup', { key: char, bubbles: true }))
+        if (input.delayMs && input.delayMs > 0) {
+          await new Promise((r) => setTimeout(r, input.delayMs))
+        }
+      }
+      el.dispatchEvent(new Event('change', { bubbles: true }))
+      el.dispatchEvent(new Event('blur', { bubbles: true }))
+      return { summary: `Typed "${input.text}" into ${input.selector ?? input.labelText}`, payload: { typed: true, length: input.text.length } }
+    },
+  },
+  {
+    name: 'select_dropdown',
+    title: 'Select an option in a dropdown',
+    description:
+      'Select an option in a <select> dropdown by its value or visible text. Target by CSS selector or label text. Dispatches change event so React state updates.',
+    inputSchema: toJsonSchema(
+      z.object({
+        selector: z.string().optional().describe('CSS selector of the <select> element'),
+        labelText: z.string().optional().describe('Label text of the dropdown'),
+        value: z.string().optional().describe('Value attribute of the option to select'),
+        text: z.string().optional().describe('Visible text of the option to select'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Select an option in a dropdown',
+    },
+    readOnly: false,
+    run: async (input) => {
+      let el: HTMLSelectElement | null = null
+      if (input.selector) {
+        el = document.querySelector(input.selector) as HTMLSelectElement | null
+      } else if (input.labelText) {
+        const labels = document.querySelectorAll('label')
+        for (const label of labels) {
+          if (label.textContent?.toLowerCase().includes(input.labelText!.toLowerCase())) {
+            const forId = label.getAttribute('for')
+            if (forId) el = document.getElementById(forId) as unknown as HTMLSelectElement
+            else             el = label.querySelector('select') as unknown as HTMLSelectElement
+            if (el) break
+          }
+        }
+      }
+      if (!el || el.tagName !== 'SELECT') {
+        return { summary: `Select not found: ${input.selector ?? input.labelText}`, payload: { selected: false, error: 'Select not found' } }
+      }
+      if (input.value) {
+        el.value = input.value
+      } else if (input.text) {
+        for (const opt of Array.from(el.options)) {
+          if (opt.text.toLowerCase().includes(input.text.toLowerCase())) {
+            el.value = opt.value
+            break
+          }
+        }
+      }
+      el.dispatchEvent(new Event('change', { bubbles: true }))
+      return { summary: `Selected in ${input.selector ?? input.labelText}: ${input.value ?? input.text}`, payload: { selected: true } }
+    },
+  },
+  {
+    name: 'click_element',
+    title: 'Click a button or link',
+    description:
+      'Click any button, link, or clickable element on the page. Target by CSS selector or by visible text content. Use to submit forms, trigger actions, open modals, or navigate.',
+    inputSchema: toJsonSchema(
+      z.object({
+        selector: z.string().optional().describe('CSS selector of the element to click (e.g. "button[type=submit]", ".btn-primary")'),
+        text: z.string().optional().describe('Visible text of the button/link to click (e.g. "Mark received", "Add Supplier")'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Click a button or link',
+    },
+    readOnly: false,
+    run: async (input) => {
+      let el: HTMLElement | null = null
+      if (input.selector) {
+        el = document.querySelector(input.selector) as HTMLElement | null
+      } else if (input.text) {
+        const all = document.querySelectorAll('button, a, [role="button"], [role="link"]')
+        for (const btn of all) {
+          if (btn.textContent?.trim().toLowerCase().includes(input.text!.toLowerCase())) {
+            el = btn as HTMLElement
+            break
+          }
+        }
+      }
+      if (!el) {
+        return { summary: `Element not found: ${input.selector ?? input.text}`, payload: { clicked: false, error: 'Element not found' } }
+      }
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      await new Promise((r) => setTimeout(r, 200))
+      el.click()
+      return { summary: `Clicked ${input.selector ?? `"${input.text}"`}`, payload: { clicked: true } }
+    },
+  },
+  {
+    name: 'wait_for_element',
+    title: 'Wait for an element to appear',
+    description:
+      'Poll the DOM until a specific element appears. Use after clicking a button or submitting a form to wait for the resulting UI change before taking the next action.',
+    inputSchema: toJsonSchema(
+      z.object({
+        selector: z.string().optional().describe('CSS selector to wait for'),
+        text: z.string().optional().describe('Text content to wait for in any element'),
+        timeoutMs: z.number().optional().default(5000).describe('Max time to wait in ms'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Wait for an element to appear',
+    },
+    readOnly: true,
+    run: async (input) => {
+      const start = Date.now()
+      const timeout = input.timeoutMs ?? 5000
+      while (Date.now() - start < timeout) {
+        if (input.selector && document.querySelector(input.selector)) {
+          return { summary: `Element appeared: ${input.selector}`, payload: { found: true } }
+        }
+        if (input.text) {
+          const all = document.querySelectorAll('h1, h2, h3, h4, p, span, td, th, div, button, a')
+          for (const el of all) {
+            if (el.textContent?.toLowerCase().includes(input.text.toLowerCase())) {
+              return { summary: `Found text: "${input.text}"`, payload: { found: true } }
+            }
+          }
+        }
+        await new Promise((r) => setTimeout(r, 150))
+      }
+      return { summary: `Timeout waiting for: ${input.selector ?? input.text}`, payload: { found: false, error: 'Timeout' } }
+    },
+  },
+  {
+    name: 'get_page_state',
+    title: 'Get current page state',
+    description:
+      'Return a snapshot of the current page: URL, title, visible headings, form fields with their current values, and clickable buttons. Use this to understand what is on screen before taking action.',
+    inputSchema: toJsonSchema(z.object({})),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Get current page state',
+    },
+    readOnly: true,
+    run: async () => {
+      const headings = Array.from(document.querySelectorAll('h1, h2, h3')).map((h) => ({
+        tag: h.tagName,
+        text: h.textContent?.trim() || '',
+      }))
+      const inputs = Array.from(document.querySelectorAll('input, textarea, select')).map((el) => ({
+        tag: el.tagName,
+        type: (el as HTMLInputElement).type || el.tagName.toLowerCase(),
+        name: el.getAttribute('name') || '',
+        placeholder: el.getAttribute('placeholder') || '',
+        value: (el as HTMLInputElement | HTMLTextAreaElement).value || '',
+        id: el.id || '',
+      }))
+      const buttons = Array.from(document.querySelectorAll('button, a[role="button"], [role="button"]')).map((b) => ({
+        text: b.textContent?.trim() || '',
+        disabled: (b as HTMLButtonElement).disabled,
+        type: (b as HTMLButtonElement).type || 'button',
+      }))
+      return {
+        summary: `Page: ${window.location.pathname} — ${headings.length} headings, ${inputs.length} inputs, ${buttons.length} buttons`,
+        payload: {
+          url: window.location.pathname,
+          title: document.title,
+          headings,
+          inputs,
+          buttons,
+        },
+      }
     },
   },
 ]

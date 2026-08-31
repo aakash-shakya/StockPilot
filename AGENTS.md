@@ -7,7 +7,7 @@ This document provides an overview of the project structure for developers and A
 StockPilot — an agent-native inventory management app. The dashboard and a browser-based AI agent operate on the
 same inventory data through the same domain logic: the UI calls it via TanStack Start server functions, and any
 WebMCP-capable agent connected to the tab calls the exact same logic via tools registered on
-`document.modelContext`. Built with TanStack Start and deployed on Netlify, backed by Netlify Database (Postgres).
+`document.modelContext`. Built with TanStack Start and deployed on Vercel, backed by Neon Postgres via Drizzle ORM.
 
 ### Tech Stack
 
@@ -15,23 +15,21 @@ WebMCP-capable agent connected to the tab calls the exact same logic via tools r
 |-------|------------|
 | Framework | TanStack Start |
 | Frontend | React 19, TanStack Router v1 |
-| Build | Vite 7 |
+| Build | Vite 7 + Nitro |
 | Styling | Tailwind CSS 4 |
-| Database | Netlify Database (managed Postgres) via Drizzle ORM |
+| Database | Neon Postgres via Drizzle ORM |
 | Agent interface | WebMCP (`document.modelContext.registerTool`) via `@mcp-b/global` |
 | Language | TypeScript 5.7 (strict mode) |
-| Deployment | Netlify |
+| Deployment | Vercel |
 
 ## Directory Structure
 
 ```
 ├── db
 │   ├── schema.ts               # Drizzle table definitions — source of truth for the schema
-│   └── index.ts                # Drizzle client (drizzle-orm/netlify-db)
-├── drizzle.config.ts            # out: netlify/database/migrations
-├── netlify/database/migrations  # SQL migrations, applied automatically by Netlify at deploy time
-│   ├── 20260827070017_create_inventory_schema/migration.sql
-│   └── 20260827070500_seed_demo_data/migration.sql
+│   └── index.ts                # Drizzle client (drizzle-orm/neon-http)
+├── drizzle.config.ts            # out: drizzle/migrations
+├── nitro.config.ts              # Nitro config (auto-detects Vercel preset)
 ├── src
 │   ├── components
 │   │   ├── Nav.tsx                  # Top nav bar (Dashboard / Products / Purchase Orders)
@@ -89,15 +87,13 @@ Routes are defined by files in `src/routes/`. `products.$productId.tsx` maps to 
 ### Database
 
 Schema changes go through `db/schema.ts` + `npx drizzle-kit generate --name <name>`, never hand-edited SQL for
-schema. Migrations live in `netlify/database/migrations/` and are applied automatically by the Netlify platform
-at deploy time — never apply them manually (`drizzle-kit migrate`/`push` and raw DDL against the DB are both off
-limits; see the `netlify-database` skill for details).
+schema. Migrations live in `drizzle/migrations/` and are applied via `npx drizzle-kit migrate`.
 
 ## Development Commands
 
 ```bash
 npm install
-netlify dev      # local dev server, wired to the Netlify Database preview branch
+npm run dev      # local dev server on port 3000
 ```
 
 ## Conventions

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute, Link, isRedirect } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { LogIn, PackageSearch } from 'lucide-react'
 import { loginFn } from '../server/auth.functions.js'
 import { Button } from '../components/ui/Button.js'
@@ -20,9 +20,11 @@ function LoginPage() {
     setError(null)
     setLoading(true)
     try {
-      await loginFn({ data: { email, password } })
+      const result = await loginFn({ data: { email, password } })
+      localStorage.setItem('stockpilot_token', result.token)
+      localStorage.setItem('stockpilot_user', JSON.stringify(result.user))
+      window.location.href = '/'
     } catch (err) {
-      if (isRedirect(err)) throw err
       setError(err instanceof Error ? err.message : 'Login failed')
       setLoading(false)
     }
