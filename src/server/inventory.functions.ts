@@ -36,7 +36,7 @@ export const getPurchaseOrdersSchema = z.object({
 })
 export const getInventoryMovementsSchema = z.object({
   productId: z.number().int().positive().optional().describe('Filter by product'),
-  type: z.enum(['sale', 'restock', 'adjustment', 'transfer_in', 'transfer_out', 'receiving']).optional().describe('Movement type'),
+  type: z.enum(['sale', 'return', 'restock', 'adjustment', 'transfer_in', 'transfer_out', 'receiving']).optional().describe('Movement type'),
   limit: z.number().int().min(1).max(100).optional().describe('Max rows, default 50'),
 })
 export const getSuppliersSchema = z.object({})
@@ -195,6 +195,35 @@ export const approvePurchaseOrderFn = createServerFn({ method: 'POST' })
 export const receiveShipmentFn = createServerFn({ method: 'POST' })
   .inputValidator(receiveShipmentSchema)
   .handler(({ data }) => inventory.receiveShipment(data))
+
+export const processSaleFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      items: z.array(
+        z.object({
+          productId: z.number().int().positive(),
+          quantity: z.number().int().positive(),
+          unitPriceCents: z.number().int().min(0),
+        }),
+      ).min(1),
+    }),
+  )
+  .handler(({ data }) => inventory.processSale(data))
+
+export const processReturnFn = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      items: z.array(
+        z.object({
+          productId: z.number().int().positive(),
+          quantity: z.number().int().positive(),
+          unitPriceCents: z.number().int().min(0),
+        }),
+      ).min(1),
+      reason: z.string().optional(),
+    }),
+  )
+  .handler(({ data }) => inventory.processReturn(data))
 
 export const updateStockFn = createServerFn({ method: 'POST' })
   .inputValidator(updateStockSchema)

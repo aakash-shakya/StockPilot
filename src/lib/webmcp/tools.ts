@@ -56,6 +56,8 @@ import {
   proposeReplenishmentSchema,
   queryInventorySchema,
   queryInventoryFn,
+  processSaleFn,
+  processReturnFn,
   receiveShipmentSchema,
   receiveShipmentFn,
   recommendReorderSchema,
@@ -74,6 +76,10 @@ import {
   whatShouldIWorryAboutFn,
 } from '../../server/inventory.functions.js'
 import { beginActivity, completeActivity, failActivity } from '../agent-activity-store.js'
+
+function formatMoneyTool(cents: number): string {
+  return `$${(cents / 100).toFixed(2)}`
+}
 
 function toJsonSchema(schema: any): Record<string, unknown> {
   const json = zodToJsonSchema(schema, { target: 'jsonSchema7', $refStrategy: 'none' }) as any
@@ -847,6 +853,71 @@ const MUTATE_TOOLS: ToolDef[] = [
     run: async (input) => {
       const result = await revertMovementFn({ data: { ...input, actor: 'agent' } })
       return { summary: `Reverted movement #${input.movementId} — ${result.product.name} is now ${result.product.quantity} units`, payload: result }
+    },
+  },
+  {
+    name: 'create_sale',
+    title: 'Record a sale (POS)',
+    description:
+      'Record a point-of-sale transaction: decrement stock for each item and log sale movements. This is CONSEQUENTIAL — it reduces real inventory counts. Use this when the agent processes a sale on behalf of the shop owner, or when the owner asks to ring up items. Confirm quantities and prices before calling.',
+    inputSchema: toJsonSchema(
+      z.object({
+        items: z.array(
+          z.object({
+            productId: z.number().int().positive().describe('Product ID'),
+            quantity: z.number().int().positive().describe('Quantity sold'),
+            unitPriceCents: z.number().int().min(0).describe('Unit price in cents'),
+          }),
+        ).min(1).describe('Items in the sale'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Record a sale (POS)',
+    },
+    readOnly: false,
+    run: async (input) => {
+      const result = await processSaleFn({ data: { ...input, actor: 'agent' } })
+      return {
+        summary: `Sale completed — ${result.items.length} item(s), total ${formatMoneyTool(result.totalCents)}`,
+        payload: result,
+      }
+    },
+  },
+  {
+    name: 'process_return',
+    title: 'Process a return (POS)',
+    description:
+      'Process a customer return: increment stock for each returned item and log return movements. This is CONSEQUENTIAL — it changes real inventory counts. Use when a customer returns a product. Confirm the items and reason before calling.',
+    inputSchema: toJsonSchema(
+      z.object({
+        items: z.array(
+          z.object({
+            productId: z.number().int().positive().describe('Product ID'),
+            quantity: z.number().int().positive().describe('Quantity returned'),
+            unitPriceCents: z.number().int().min(0).describe('Original unit price in cents'),
+          }),
+        ).min(1).describe('Items being returned'),
+        reason: z.string().optional().describe('Reason for the return'),
+      }),
+    ),
+    annotations: {
+      readOnlyHint: false,
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: false,
+      title: 'Process a return (POS)',
+    },
+    readOnly: false,
+    run: async (input) => {
+      const result = await processReturnFn({ data: { ...input, actor: 'agent' } })
+      return {
+        summary: `Return processed — ${result.items.length} item(s), refund ${formatMoneyTool(result.totalCents)}`,
+        payload: result,
+      }
     },
   },
 ]

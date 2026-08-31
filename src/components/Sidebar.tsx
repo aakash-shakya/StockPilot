@@ -15,11 +15,13 @@ import {
   Bot,
   LogOut,
   ChevronDown,
+  ShoppingCart,
 } from 'lucide-react'
 import { cn } from '../lib/cn.js'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/pos', label: 'Point of Sale', icon: ShoppingCart },
   { to: '/products', label: 'Products', icon: PackageSearch },
   { to: '/products/new', label: 'New Product', icon: PlusCircle },
   { to: '/purchase-orders', label: 'Orders', icon: ClipboardList },

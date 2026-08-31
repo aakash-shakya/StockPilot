@@ -451,6 +451,126 @@ export async function receiveShipment(input: { purchaseOrderId: number; actor?: 
   return full
 }
 
+// ---------------------------------------------------------------------------
+// POS: Sales & Returns
+// ---------------------------------------------------------------------------
+
+export async function processSale(input: {
+  items: Array<{ productId: number; quantity: number; unitPriceCents: number }>
+  actor?: Actor
+}) {
+  if (!input.items.length) throw new Error('Sale must have at least one item')
+
+  const saleLines: Array<{
+    product: typeof products.$inferSelect
+    quantity: number
+    unitPriceCents: number
+    totalCents: number
+  }> = []
+
+  for (const item of input.items) {
+    const [product] = await db.select().from(products).where(eq(products.id, item.productId))
+    if (!product) throw new Error(`Product #${item.productId} not found`)
+    if (product.quantity < item.quantity) {
+      throw new Error(`Insufficient stock for ${product.name}: have ${product.quantity}, need ${item.quantity}`)
+    }
+    saleLines.push({
+      product,
+      quantity: item.quantity,
+      unitPriceCents: item.unitPriceCents,
+      totalCents: item.quantity * item.unitPriceCents,
+    })
+  }
+
+  const movementRecords: Array<typeof inventoryMovements.$inferInsert> = []
+  for (const line of saleLines) {
+    const nextQty = line.product.quantity - line.quantity
+    await db.update(products).set({ quantity: nextQty }).where(eq(products.id, line.product.id))
+    movementRecords.push({
+      productId: line.product.id,
+      type: 'sale',
+      quantityDelta: -line.quantity,
+      note: `POS sale — ${line.quantity}× ${line.product.name} @ $${(line.unitPriceCents / 100).toFixed(2)}`,
+      actor: input.actor ?? 'human',
+    })
+  }
+
+  if (movementRecords.length) {
+    await db.insert(inventoryMovements).values(movementRecords)
+  }
+
+  const totalCents = saleLines.reduce((sum, l) => sum + l.totalCents, 0)
+  return {
+    totalCents,
+    items: saleLines.map((l) => ({
+      productId: l.product.id,
+      name: l.product.name,
+      sku: l.product.sku,
+      quantity: l.quantity,
+      unitPriceCents: l.unitPriceCents,
+      totalCents: l.totalCents,
+      remainingStock: l.product.quantity - l.quantity,
+    })),
+  }
+}
+
+export async function processReturn(input: {
+  items: Array<{ productId: number; quantity: number; unitPriceCents: number }>
+  reason?: string
+  actor?: Actor
+}) {
+  if (!input.items.length) throw new Error('Return must have at least one item')
+
+  const returnLines: Array<{
+    product: typeof products.$inferSelect
+    quantity: number
+    unitPriceCents: number
+    totalCents: number
+  }> = []
+
+  for (const item of input.items) {
+    const [product] = await db.select().from(products).where(eq(products.id, item.productId))
+    if (!product) throw new Error(`Product #${item.productId} not found`)
+    returnLines.push({
+      product,
+      quantity: item.quantity,
+      unitPriceCents: item.unitPriceCents,
+      totalCents: item.quantity * item.unitPriceCents,
+    })
+  }
+
+  const movementRecords: Array<typeof inventoryMovements.$inferInsert> = []
+  for (const line of returnLines) {
+    const nextQty = line.product.quantity + line.quantity
+    await db.update(products).set({ quantity: nextQty }).where(eq(products.id, line.product.id))
+    movementRecords.push({
+      productId: line.product.id,
+      type: 'return',
+      quantityDelta: line.quantity,
+      note: `POS return — ${line.quantity}× ${line.product.name}${input.reason ? ` (${input.reason})` : ''}`,
+      actor: input.actor ?? 'human',
+    })
+  }
+
+  if (movementRecords.length) {
+    await db.insert(inventoryMovements).values(movementRecords)
+  }
+
+  const totalCents = returnLines.reduce((sum, l) => sum + l.totalCents, 0)
+  return {
+    totalCents,
+    items: returnLines.map((l) => ({
+      productId: l.product.id,
+      name: l.product.name,
+      sku: l.product.sku,
+      quantity: l.quantity,
+      unitPriceCents: l.unitPriceCents,
+      totalCents: l.totalCents,
+      newStock: l.product.quantity + l.quantity,
+    })),
+  }
+}
+
 export async function updateStock(input: {
   productId: number
   quantityDelta: number
@@ -1545,7 +1665,7 @@ export async function getInventoryMovements(input: { productId?: number; type?: 
 export async function revertMovement(input: { movementId: number; actor?: Actor }) {
   const [movement] = await db.select().from(inventoryMovements).where(eq(inventoryMovements.id, input.movementId))
   if (!movement) throw new Error('Unknown movement')
-  if (movement.type === 'sale' || movement.type === 'receiving') {
+  if (movement.type === 'sale' || movement.type === 'return' || movement.type === 'receiving') {
     throw new Error(`Cannot revert a ${movement.type} movement — only manual adjustments and transfers can be undone`)
   }
 

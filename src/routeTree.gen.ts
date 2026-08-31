@@ -14,6 +14,7 @@ import { Route as AgentActionsRouteImport } from './routes/agent-actions'
 import { Route as AgentToolsRouteImport } from './routes/agent-tools'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PosRouteImport } from './routes/pos'
 import { Route as ProductsRouteImport } from './routes/products'
 import { Route as PurchaseOrdersRouteImport } from './routes/purchase-orders'
 import { Route as RegisterRouteImport } from './routes/register'
@@ -46,6 +47,11 @@ const HealthRoute = HealthRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PosRoute = PosRouteImport.update({
+  id: '/pos',
+  path: '/pos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsRoute = ProductsRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/agent-tools': typeof AgentToolsRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
+  '/pos': typeof PosRoute
   '/products': typeof ProductsRouteWithChildren
   '/purchase-orders': typeof PurchaseOrdersRoute
   '/register': typeof RegisterRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/agent-tools': typeof AgentToolsRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
+  '/pos': typeof PosRoute
   '/products': typeof ProductsRouteWithChildren
   '/purchase-orders': typeof PurchaseOrdersRoute
   '/register': typeof RegisterRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/agent-tools': typeof AgentToolsRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
+  '/pos': typeof PosRoute
   '/products': typeof ProductsRouteWithChildren
   '/purchase-orders': typeof PurchaseOrdersRoute
   '/register': typeof RegisterRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/agent-tools'
     | '/health'
     | '/login'
+    | '/pos'
     | '/products'
     | '/purchase-orders'
     | '/register'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/agent-tools'
     | '/health'
     | '/login'
+    | '/pos'
     | '/products'
     | '/purchase-orders'
     | '/register'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/agent-tools'
     | '/health'
     | '/login'
+    | '/pos'
     | '/products'
     | '/purchase-orders'
     | '/register'
@@ -189,6 +201,7 @@ export interface RootRouteChildren {
   AgentToolsRoute: typeof AgentToolsRoute
   HealthRoute: typeof HealthRoute
   LoginRoute: typeof LoginRoute
+  PosRoute: typeof PosRoute
   ProductsRoute: typeof ProductsRouteWithChildren
   PurchaseOrdersRoute: typeof PurchaseOrdersRoute
   RegisterRoute: typeof RegisterRoute
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pos': {
+      id: '/pos'
+      path: '/pos'
+      fullPath: '/pos'
+      preLoaderRoute: typeof PosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products': {
@@ -313,6 +333,7 @@ const rootRouteChildren: RootRouteChildren = {
   AgentToolsRoute: AgentToolsRoute,
   HealthRoute: HealthRoute,
   LoginRoute: LoginRoute,
+  PosRoute: PosRoute,
   ProductsRoute: ProductsRouteWithChildren,
   PurchaseOrdersRoute: PurchaseOrdersRoute,
   RegisterRoute: RegisterRoute,

@@ -36,7 +36,7 @@ export const inventoryMovements = sqliteTable('inventory_movements', {
   productId: integer('product_id')
     .notNull()
     .references(() => products.id),
-  type: text().notNull(), // 'sale' | 'restock' | 'adjustment' | 'transfer_in' | 'transfer_out' | 'receiving'
+  type: text().notNull(), // 'sale' | 'return' | 'restock' | 'adjustment' | 'transfer_in' | 'transfer_out' | 'receiving'
   quantityDelta: integer('quantity_delta').notNull(),
   note: text(),
   actor: text().notNull().default('human'), // 'human' | 'agent'
