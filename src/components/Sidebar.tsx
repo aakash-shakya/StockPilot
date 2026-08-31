@@ -26,7 +26,7 @@ const navItems = [
   { to: '/sales', label: 'Sales History', icon: BarChart3 },
   { to: '/products', label: 'Products', icon: PackageSearch },
   { to: '/products/new', label: 'New Product', icon: PlusCircle },
-  { to: '/purchase-orders', label: 'Orders', icon: ClipboardList },
+  { to: '/purchase-orders', label: 'Purchase Orders', icon: ClipboardList },
   { to: '/agent-actions', label: 'Actions', icon: ShieldCheck },
   { to: '/suppliers', label: 'Suppliers', icon: Truck },
   { to: '/health', label: 'Health', icon: HeartPulse },
