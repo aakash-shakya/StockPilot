@@ -102,6 +102,7 @@ interface ToolDef {
   outputSchema?: Record<string, unknown>
   annotations: { readOnlyHint: boolean; destructiveHint: boolean; idempotentHint: boolean; openWorldHint: boolean; title?: string }
   readOnly: boolean // keep for backward compat derived from annotations.readOnlyHint
+  navigateTo?: string // Path to navigate to after successful execution
   run: (input: any) => Promise<{ summary: string; payload: unknown }>
 }
 
@@ -748,6 +749,7 @@ const CREATE_TOOLS: ToolDef[] = [
       title: 'Create product from a reviewed draft',
     },
     readOnly: false,
+    navigateTo: '/products',
     run: async (input) => {
       const product = await createProductFromDraftFn({ data: input })
       return { summary: `Created ${product.sku} — "${product.name}"`, payload: product }
@@ -767,6 +769,7 @@ const CREATE_TOOLS: ToolDef[] = [
       title: 'Create draft purchase order',
     },
     readOnly: false,
+    navigateTo: '/purchase-orders',
     run: async (input) => {
       const po = await createPurchaseOrderFn({ data: { ...input, createdBy: 'agent' } })
       return { summary: `Created draft ${po?.poNumber} (${money(po?.totalCostCents ?? 0)}) — awaiting approval`, payload: po }
@@ -793,6 +796,7 @@ const MUTATE_TOOLS: ToolDef[] = [
       title: 'Approve purchase order',
     },
     readOnly: false,
+    navigateTo: '/purchase-orders',
     run: async (input) => {
       const po = await approvePurchaseOrderFn({ data: input })
       return { summary: `Approved ${po?.poNumber}`, payload: po }
@@ -812,6 +816,7 @@ const MUTATE_TOOLS: ToolDef[] = [
       title: 'Receive shipment',
     },
     readOnly: false,
+    navigateTo: '/purchase-orders',
     run: async (input) => {
       const po = await receiveShipmentFn({ data: { ...input, actor: 'agent' } })
       return { summary: `Received ${po?.poNumber} — stock updated`, payload: po }
@@ -879,6 +884,7 @@ const MUTATE_TOOLS: ToolDef[] = [
       title: 'Record a sale (POS)',
     },
     readOnly: false,
+    navigateTo: '/sales',
     run: async (input) => {
       const result = await processSaleFn({ data: { ...input, actor: 'agent' } })
       return {
@@ -912,6 +918,7 @@ const MUTATE_TOOLS: ToolDef[] = [
       title: 'Process a return (POS)',
     },
     readOnly: false,
+    navigateTo: '/sales',
     run: async (input) => {
       const result = await processReturnFn({ data: { ...input, actor: 'agent' } })
       return {
@@ -1354,6 +1361,7 @@ const COLLABORATE_TOOLS: ToolDef[] = [
       title: 'Propose a Smart Replenishment plan for approval',
     },
     readOnly: false,
+    navigateTo: '/agent-actions',
     run: async (input) => {
       const proposals = await createReplenishmentProposalsFn({ data: input })
       return { summary: `Filed ${proposals.length} replenishment proposal(s) for approval`, payload: proposals }
@@ -1373,6 +1381,7 @@ const COLLABORATE_TOOLS: ToolDef[] = [
       title: 'Approve a pending agent action',
     },
     readOnly: false,
+    navigateTo: '/agent-actions',
     run: async (input) => {
       const result = await decideAgentActionFn({ data: { actionId: input.actionId, decision: 'approved' } })
       return { summary: `Action ${input.actionId} ${result?.status}: ${result?.resultSummary ?? ''}`, payload: result }
@@ -1391,6 +1400,7 @@ const COLLABORATE_TOOLS: ToolDef[] = [
       title: 'Reject a pending agent action',
     },
     readOnly: false,
+    navigateTo: '/agent-actions',
     run: async (input) => {
       const result = await decideAgentActionFn({ data: { actionId: input.actionId, decision: 'rejected' } })
       return { summary: `Action ${input.actionId} rejected`, payload: result }
@@ -1513,6 +1523,10 @@ export async function registerInventoryWebMCPTools(): Promise<() => void> {
               void logAgentToolCallFn({
                 data: { toolName: tool.name, input, summary, consequential: !tool.readOnly },
               }).catch(() => {})
+              // Navigate to relevant page after successful execution
+              if (tool.navigateTo && !opts?.signal?.aborted) {
+                window.dispatchEvent(new CustomEvent('agent:navigate', { detail: { path: tool.navigateTo } }))
+              }
               if ((tool as any).outputSchema) return toolSuccess(payload, payload)
               return toolSuccess(payload)
             } catch (error) {
