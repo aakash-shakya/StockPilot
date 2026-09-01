@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { HeadContent, Outlet, Scripts, createRootRoute, redirect, useRouter, useRouterState } from '@tanstack/react-router'
 
 import { Sidebar } from '../components/Sidebar.js'
-import { AgentActivityDrawer } from '../components/AgentActivityPanel.js'
+import { AgentActivityPanel } from '../components/AgentActivityPanel.js'
 import { ToastProvider } from '../components/ui/Toast.js'
 import { WebMcpProvider } from '../lib/webmcp/WebMcpProvider.js'
 import { agentActivityStore } from '../lib/agent-activity-store.js'
@@ -140,6 +141,13 @@ function RootComponent() {
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [])
 
+  // Auto-open agent panel on first tool call
+  useEffect(() => {
+    const handleOpenPanel = () => setAgentPanelOpen(true)
+    window.addEventListener('agent:open-panel', handleOpenPanel)
+    return () => window.removeEventListener('agent:open-panel', handleOpenPanel)
+  }, [])
+
   // Handle WebMCP UI manipulation events from agent tools
   useEffect(() => {
     const handleNavigate = (e: Event) => {
@@ -195,13 +203,25 @@ function RootComponent() {
           isAgentPanelOpen={agentPanelOpen}
           onToggleAgentPanel={() => setAgentPanelOpen((v) => !v)}
         />
-        <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-y-auto">
-          <Outlet />
+        <div className="flex-1 flex min-w-0 min-h-screen overflow-hidden">
+          <main className="flex-1 flex flex-col min-w-0 min-h-screen overflow-y-auto">
+            <Outlet />
+          </main>
+          <AnimatePresence>
+            {agentPanelOpen && (
+              <motion.div
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 360, opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                className="shrink-0 overflow-hidden border-l"
+                style={{ borderColor: 'var(--color-border)' }}
+              >
+                <AgentActivityPanel onToggle={() => setAgentPanelOpen(false)} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        <AgentActivityDrawer
-          open={agentPanelOpen}
-          onToggle={() => setAgentPanelOpen((v) => !v)}
-        />
         <WebMcpProvider />
       </ToastProvider>
     </div>

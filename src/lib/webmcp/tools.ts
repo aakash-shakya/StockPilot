@@ -1458,6 +1458,7 @@ export const TOOL_CATALOG: Array<{ category: string; tools: ToolCatalogEntry[] }
 }))
 
 let registered = false
+let panelOpened = false
 
 const DEMO_PROMPT = {
   name: 'protect_my_inventory',
@@ -1498,6 +1499,13 @@ export async function registerInventoryWebMCPTools(): Promise<() => void> {
           execute: async (input: any, opts?: { signal?: AbortSignal }) => {
             // Respect abort signal if provided by host
             if (opts?.signal?.aborted) throw new DOMException('Aborted', 'AbortError')
+
+            // Auto-open agent panel on first tool call
+            if (!panelOpened) {
+              panelOpened = true
+              window.dispatchEvent(new CustomEvent('agent:open-panel'))
+            }
+
             const activityId = beginActivity(tool.name, tool.title, !tool.readOnly)
             try {
               const { summary, payload } = await tool.run(input ?? {})
