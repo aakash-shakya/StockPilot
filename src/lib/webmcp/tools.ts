@@ -38,6 +38,7 @@ import {
   getInventorySummaryFn,
   getMissionStatusFn,
   getMorningBriefingFn,
+  getProfitabilityAnalysisFn,
   getProductDetailsSchema,
   getProductDetailsFn,
   getPurchaseOrdersSchema,
@@ -686,6 +687,38 @@ const ANALYZE_TOOLS: ToolDef[] = [
       const result = await investigateInventoryFn()
       return {
         summary: `${result.totalIssues} issue(s): ${result.highSeverityCount} high, ${result.mediumSeverityCount} medium, ${result.lowSeverityCount} low`,
+        payload: result,
+      }
+    },
+  },
+  {
+    name: 'get_profitability_analysis',
+    title: 'Analyze product profitability',
+    description:
+      'Analyze profitability across all products: sales velocity, profit margin per unit, and projected monthly revenue and profit. ' +
+      'Use this to answer questions like "which products will make me $1000 this month?" or "what are my most profitable products?" ' +
+      'Filter by category, supplier, or minimum profit threshold. Sort by monthly profit, velocity, or margin.',
+    inputSchema: toJsonSchema(
+      z.object({
+        category: z.string().optional().describe('Filter by product category'),
+        supplierId: z.number().int().positive().optional().describe('Filter by supplier ID'),
+        minProfitCents: z.number().int().optional().describe('Minimum monthly profit in cents'),
+        sortBy: z.enum(['monthlyProfit', 'velocity', 'margin']).optional().describe('Sort by monthly profit, velocity, or margin'),
+      }).optional(),
+    ),
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+      title: 'Analyze product profitability',
+    },
+    readOnly: true,
+    navigateTo: '/sales',
+    run: async (input) => {
+      const result = await getProfitabilityAnalysisFn({ data: input ?? {} })
+      return {
+        summary: `${result.summary.profitableCount} profitable product(s), ${money(result.summary.totalMonthlyProfitCents)}/mo projected profit, ${result.summary.averageMarginPercent}% avg margin`,
         payload: result,
       }
     },

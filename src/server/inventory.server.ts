@@ -2132,6 +2132,94 @@ export async function investigateInventory() {
 }
 
 // ---------------------------------------------------------------------------
+// Profitability Analysis
+// ---------------------------------------------------------------------------
+
+export async function getProfitabilityAnalysis(input?: {
+  category?: string
+  supplierId?: number
+  minProfitCents?: number
+  sortBy?: 'monthlyProfit' | 'velocity' | 'margin'
+}) {
+  const rows = await db
+    .select({
+      id: products.id,
+      sku: products.sku,
+      name: products.name,
+      category: products.category,
+      quantity: products.quantity,
+      costCents: products.costCents,
+      priceCents: products.priceCents,
+      supplierId: products.supplierId,
+      supplierName: suppliers.name,
+    })
+    .from(products)
+    .innerJoin(suppliers, eq(products.supplierId, suppliers.id))
+
+  const { recentUnits, baselineUnits } = await velocityWindows()
+
+  const results = rows
+    .map((p) => {
+      const recentDaily = round1((recentUnits.get(p.id) ?? 0) / 7)
+      const baselineDaily = round1((baselineUnits.get(p.id) ?? 0) / 23)
+      const velocity = recentDaily > 0 ? recentDaily : baselineDaily
+      const profitPerUnit = p.priceCents - p.costCents
+      const monthlyRevenue = round1(velocity * p.priceCents * 30)
+      const monthlyProfit = round1(velocity * profitPerUnit * 30)
+      const marginPercent = p.priceCents > 0 ? round1((profitPerUnit / p.priceCents) * 100) : 0
+      const coverageDays = velocity > 0 ? round1(p.quantity / velocity) : null
+
+      return {
+        productId: p.id,
+        sku: p.sku,
+        name: p.name,
+        category: p.category,
+        supplierId: p.supplierId,
+        supplierName: p.supplierName,
+        quantity: p.quantity,
+        costCents: p.costCents,
+        priceCents: p.priceCents,
+        profitPerUnit,
+        marginPercent,
+        dailyVelocity: velocity,
+        monthlyRevenueCents: monthlyRevenue,
+        monthlyProfitCents: monthlyProfit,
+        coverageDays,
+        trend: trendFor(recentDaily, baselineDaily),
+      }
+    })
+    .filter((p) => {
+      if (input?.category && p.category !== input.category) return false
+      if (input?.supplierId && p.supplierId !== input.supplierId) return false
+      if (input?.minProfitCents != null && p.monthlyProfitCents < input.minProfitCents) return false
+      return true
+    })
+    .sort((a, b) => {
+      const sortBy = input?.sortBy ?? 'monthlyProfit'
+      if (sortBy === 'velocity') return b.dailyVelocity - a.dailyVelocity
+      if (sortBy === 'margin') return b.marginPercent - a.marginPercent
+      return b.monthlyProfitCents - a.monthlyProfitCents
+    })
+
+  const totalMonthlyProfit = results.reduce((sum, p) => sum + p.monthlyProfitCents, 0)
+  const totalMonthlyRevenue = results.reduce((sum, p) => sum + p.monthlyRevenueCents, 0)
+  const profitableCount = results.filter((p) => p.monthlyProfitCents > 0).length
+
+  return {
+    products: results,
+    summary: {
+      totalProducts: results.length,
+      profitableCount,
+      totalMonthlyProfitCents: totalMonthlyProfit,
+      totalMonthlyRevenueCents: totalMonthlyRevenue,
+      averageMarginPercent: results.length
+        ? round1(results.reduce((sum, p) => sum + p.marginPercent, 0) / results.length)
+        : 0,
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Bulk Create Products (CSV import)
 // ---------------------------------------------------------------------------
 

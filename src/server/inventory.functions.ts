@@ -237,6 +237,17 @@ export const getSalesHistoryFn = createServerFn({ method: 'GET' })
   )
   .handler(({ data }) => inventory.getSalesHistory(data))
 
+export const getProfitabilityAnalysisFn = createServerFn({ method: 'GET' })
+  .inputValidator(
+    z.object({
+      category: z.string().optional(),
+      supplierId: z.number().int().positive().optional(),
+      minProfitCents: z.number().int().optional(),
+      sortBy: z.enum(['monthlyProfit', 'velocity', 'margin']).optional(),
+    }).optional(),
+  )
+  .handler(({ data }) => inventory.getProfitabilityAnalysis(data))
+
 export const logAgentToolCallFn = createServerFn({ method: 'POST' })
   .inputValidator(
     z.object({
