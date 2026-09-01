@@ -1,7 +1,6 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import * as inventory from './inventory.server.js'
-import * as auth from './auth.server.js'
 
 export const actorSchema = z.enum(['human', 'agent']).optional()
 
@@ -247,10 +246,10 @@ export const logAgentToolCallFn = createServerFn({ method: 'POST' })
       consequential: z.boolean(),
     }),
   )
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     let userId: number | null = null
     try {
-      const user = await auth.getAuthUserFromRequest()
+      const user = (context as any)?.authUser
       if (user) userId = user.id
     } catch {}
     return inventory.logAgentToolCall({ ...data, userId })
@@ -329,9 +328,9 @@ export const proposeAgentActionFn = createServerFn({ method: 'POST' })
 
 export const decideAgentActionFn = createServerFn({ method: 'POST' })
   .inputValidator(decideAgentActionSchema)
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     // Server-derived actor — never trust client-supplied decidedBy (impersonation fix D4)
-    const user = await auth.getAuthUserFromRequest()
+    const user = (context as any)?.authUser
     const decidedBy = user ? (user.name as string) : 'human'
     return inventory.decideAgentAction({ ...data, decidedBy } as any)
   })

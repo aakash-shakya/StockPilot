@@ -46,36 +46,6 @@ function getJwtSecret() {
   return new TextEncoder().encode('stockpilot-dev-fallback-secret-not-for-production')
 }
 
-/**
- * Extract auth user from the incoming request.
- * Tries: Authorization header → cookie → null.
- * Works on Cloudflare Workers (no H3 cookie manipulation needed).
- */
-export async function getAuthUserFromRequest(): Promise<SafeUser | null> {
-  try {
-    // Dynamic import — only available inside TanStack Start request context
-    const { getRequestHeaders } = await import('@tanstack/start-server-core')
-    const rawHeaders = getRequestHeaders() as unknown as Record<string, string | undefined>
-
-    // 1. Try Authorization header
-    const authHeader = rawHeaders['authorization'] ?? rawHeaders['Authorization']
-    if (authHeader && typeof authHeader === 'string') {
-      const token = authHeader.replace(/^Bearer\s+/i, '').trim()
-      if (token) return verifyJwt(token)
-    }
-
-    // 2. Try cookie fallback (works on non-Workers runtimes)
-    const cookieHeader = rawHeaders['cookie']
-    if (cookieHeader && typeof cookieHeader === 'string') {
-      const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]*)`))
-      if (match?.[1]) return verifyJwt(match[1])
-    }
-  } catch {
-    // Outside request context or import failed
-  }
-  return null
-}
-
 export function getSessionCookieName() {
   return SESSION_COOKIE
 }

@@ -33,14 +33,14 @@ export const logoutFn = createServerFn({ method: 'POST' }).handler(async () => {
   return { ok: true }
 })
 
-/** Read current user from Authorization header (works on Workers). */
-export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(async () => {
-  return auth.getAuthUserFromRequest()
+/** Read current user from middleware auth context. */
+export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(async ({ context }) => {
+  return (context as any)?.authUser ?? null
 })
 
 /** Require authenticated user — throws if not logged in. */
-export const requireAuthFn = createServerFn({ method: 'GET' }).handler(async () => {
-  const user = await auth.getAuthUserFromRequest()
+export const requireAuthFn = createServerFn({ method: 'GET' }).handler(async ({ context }) => {
+  const user = (context as any)?.authUser
   if (!user) throw new Error('Unauthorized')
   return user
 })
