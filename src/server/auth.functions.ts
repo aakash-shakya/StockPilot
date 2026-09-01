@@ -33,8 +33,14 @@ export const logoutFn = createServerFn({ method: 'POST' }).handler(async () => {
   return { ok: true }
 })
 
-export const getCurrentUserFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ token: z.string() }))
-  .handler(async ({ data }) => {
-    return await auth.validateSessionToken(data.token)
-  })
+/** Read current user from middleware auth context. */
+export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(async ({ context }) => {
+  return (context as any)?.authUser ?? null
+})
+
+/** Require authenticated user — throws if not logged in. */
+export const requireAuthFn = createServerFn({ method: 'GET' }).handler(async ({ context }) => {
+  const user = (context as any)?.authUser
+  if (!user) throw new Error('Unauthorized')
+  return user
+})
