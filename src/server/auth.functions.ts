@@ -33,8 +33,14 @@ export const logoutFn = createServerFn({ method: 'POST' }).handler(async () => {
   return { ok: true }
 })
 
-export const getCurrentUserFn = createServerFn({ method: 'GET' })
-  .inputValidator(z.object({ token: z.string() }))
-  .handler(async ({ data }) => {
-    return await auth.validateSessionToken(data.token)
-  })
+/** Read current user from Authorization header (works on Workers). */
+export const getCurrentUserFn = createServerFn({ method: 'GET' }).handler(async () => {
+  return auth.getAuthUserFromRequest()
+})
+
+/** Require authenticated user — throws if not logged in. */
+export const requireAuthFn = createServerFn({ method: 'GET' }).handler(async () => {
+  const user = await auth.getAuthUserFromRequest()
+  if (!user) throw new Error('Unauthorized')
+  return user
+})

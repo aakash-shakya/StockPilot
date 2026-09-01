@@ -8,6 +8,22 @@ import { WebMcpProvider } from '../lib/webmcp/WebMcpProvider.js'
 import { agentActivityStore } from '../lib/agent-activity-store.js'
 import '../styles.css'
 
+// Intercept fetch to attach JWT from localStorage — cookies don't work on Cloudflare Workers
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch
+  window.fetch = async (input, init) => {
+    const token = localStorage.getItem('stockpilot_token')
+    if (token) {
+      const headers = new Headers(init?.headers as HeadersInit)
+      if (!headers.has('Authorization')) {
+        headers.set('Authorization', `Bearer ${token}`)
+      }
+      init = { ...init, headers }
+    }
+    return originalFetch(input, init)
+  }
+}
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [

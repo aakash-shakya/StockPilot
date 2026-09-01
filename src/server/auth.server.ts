@@ -8,12 +8,72 @@ const SESSION_COOKIE = 'stockpilot_session'
 const SESSION_MAX_AGE_DAYS = 7
 const BCRYPT_ROUNDS = 12
 
+// ---------------------------------------------------------------------------
+// Rate limiting (in-memory, per-Worker instance)
+// ---------------------------------------------------------------------------
+const loginAttempts = new Map<string, { count: number; resetAt: number }>()
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000 // 15 minutes
+const RATE_LIMIT_MAX = 10 // max attempts per window
+
+/**
+ * Check rate limit for login attempts. Throws if limit exceeded.
+ * Uses a simple in-memory map — resets on Worker restart, acceptable for demo.
+ */
+export function checkLoginRateLimit(identifier: string) {
+  const now = Date.now()
+  const entry = loginAttempts.get(identifier)
+
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= RATE_LIMIT_MAX) {
+      const retryAfter = Math.ceil((entry.resetAt - now) / 1000)
+      throw new Error(`Too many login attempts. Try again in ${retryAfter}s.`)
+    }
+    entry.count++
+  } else {
+    loginAttempts.set(identifier, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS })
+  }
+}
+
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET
   if (secret) return new TextEncoder().encode(secret)
-  // Fallback for dev — NOT secure for production
-  console.warn('[auth] No JWT_SECRET set, using fallback secret. Set JWT_SECRET in Netlify env vars for production.')
+  // In production, fail loudly instead of silently using a weak fallback
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('[auth] JWT_SECRET is not set. Configure it in your Cloudflare Worker secrets.')
+  }
+  // Dev-only fallback — never shipped to production
+  console.warn('[auth] No JWT_SECRET set, using dev fallback. Set JWT_SECRET for production.')
   return new TextEncoder().encode('stockpilot-dev-fallback-secret-not-for-production')
+}
+
+/**
+ * Extract auth user from the incoming request.
+ * Tries: Authorization header → cookie → null.
+ * Works on Cloudflare Workers (no H3 cookie manipulation needed).
+ */
+export async function getAuthUserFromRequest(): Promise<SafeUser | null> {
+  try {
+    // Dynamic import — only available inside TanStack Start request context
+    const { getRequestHeaders } = await import('@tanstack/start-server-core')
+    const rawHeaders = getRequestHeaders() as unknown as Record<string, string | undefined>
+
+    // 1. Try Authorization header
+    const authHeader = rawHeaders['authorization'] ?? rawHeaders['Authorization']
+    if (authHeader && typeof authHeader === 'string') {
+      const token = authHeader.replace(/^Bearer\s+/i, '').trim()
+      if (token) return verifyJwt(token)
+    }
+
+    // 2. Try cookie fallback (works on non-Workers runtimes)
+    const cookieHeader = rawHeaders['cookie']
+    if (cookieHeader && typeof cookieHeader === 'string') {
+      const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${SESSION_COOKIE}=([^;]*)`))
+      if (match?.[1]) return verifyJwt(match[1])
+    }
+  } catch {
+    // Outside request context or import failed
+  }
+  return null
 }
 
 export function getSessionCookieName() {
@@ -136,6 +196,9 @@ export async function validateSessionToken(token: string): Promise<SafeUser | nu
 }
 
 export async function authenticateUser(email: string, password: string): Promise<SafeUser> {
+  // Rate limit by email (cheap, no IP extraction needed on Workers)
+  checkLoginRateLimit(email.toLowerCase().trim())
+
   const user = await findUserByEmail(email)
   if (!user) throw new Error('Invalid email or password')
   const valid = await verifyPassword(password, user.passwordHash)

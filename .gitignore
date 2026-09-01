@@ -5,3 +5,8 @@ dist/
 node_modules/
 .netlify/
 drizzle/meta/
+
+# Environment secrets
+.env
+.env.local
+.env.*.local
