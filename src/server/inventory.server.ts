@@ -1865,7 +1865,7 @@ export async function getMorningBriefing() {
   const topAction = plan.items[0] ?? null
   const healthScore = Math.max(
     0,
-    100 - health.highSeverityCount * 10 - health.mediumSeverityCount * 3 - health.lowSeverityCount * 0.5,
+    100 - health.highSeverityCount * 5 - health.mediumSeverityCount * 1 - health.lowSeverityCount * 0.25,
   )
 
   return {
