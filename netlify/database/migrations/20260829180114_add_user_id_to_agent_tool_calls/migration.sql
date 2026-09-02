@@ -1,1 +1,0 @@
-ALTER TABLE "agent_tool_calls" ADD COLUMN "user_id" integer;
