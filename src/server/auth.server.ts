@@ -36,14 +36,10 @@ export function checkLoginRateLimit(identifier: string) {
 
 function getJwtSecret() {
   const secret = process.env.JWT_SECRET
-  if (secret) return new TextEncoder().encode(secret)
-  // In production, fail loudly instead of silently using a weak fallback
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('[auth] JWT_SECRET is not set. Configure it in your Cloudflare Worker secrets.')
+  if (!secret) {
+    throw new Error('[auth] JWT_SECRET is not set. Configure it in your Cloudflare Worker secrets (wrangler secret put JWT_SECRET).')
   }
-  // Dev-only fallback — never shipped to production
-  console.warn('[auth] No JWT_SECRET set, using dev fallback. Set JWT_SECRET for production.')
-  return new TextEncoder().encode('stockpilot-dev-fallback-secret-not-for-production')
+  return new TextEncoder().encode(secret)
 }
 
 export function getSessionCookieName() {

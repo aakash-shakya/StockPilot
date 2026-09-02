@@ -6,6 +6,11 @@ node_modules/
 .netlify/
 drizzle/meta/
 
+# Agent/tool directories
+.agents/
+.gstack/
+.tanstack/
+
 # Environment secrets
 .env
 .env.local
