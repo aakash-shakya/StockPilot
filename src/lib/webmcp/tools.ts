@@ -1015,10 +1015,18 @@ const NAVIGATE_TOOLS: ToolDef[] = [
     },
     readOnly: true,
     run: async (input) => {
-      window.dispatchEvent(
-        new CustomEvent('agent:highlight', { detail: { productId: input.productId, durationMs: input.durationMs ?? 4000 } }),
-      )
-      return { summary: `Highlighting product ${input.productId}`, payload: { highlighted: true, productId: input.productId } }
+      const el = document.querySelector(`[data-product-id="${input.productId}"]`)
+      if (el) {
+        window.dispatchEvent(
+          new CustomEvent('agent:highlight', { detail: { productId: input.productId, durationMs: input.durationMs ?? 4000 } }),
+        )
+        return { summary: `Highlighted product ${input.productId}`, payload: { highlighted: true, productId: input.productId } }
+      } else {
+        window.dispatchEvent(
+          new CustomEvent('agent:highlight-miss', { detail: { productId: input.productId } }),
+        )
+        return { summary: `Product #${input.productId} not visible on this page`, payload: { highlighted: false, productId: input.productId } }
+      }
     },
   },
   {
