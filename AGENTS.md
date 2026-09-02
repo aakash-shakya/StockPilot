@@ -7,7 +7,7 @@ This document provides an overview of the project structure for developers and A
 StockPilot — an agent-native inventory management app. The dashboard and a browser-based AI agent operate on the
 same inventory data through the same domain logic: the UI calls it via TanStack Start server functions, and any
 WebMCP-capable agent connected to the tab calls the exact same logic via tools registered on
-`document.modelContext`. Built with TanStack Start and deployed on Vercel, backed by Neon Postgres via Drizzle ORM.
+`document.modelContext`. Built with TanStack Start and deployed on Cloudflare Workers, backed by Cloudflare D1 (SQLite) via Drizzle ORM.
 
 ### Tech Stack
 
@@ -15,12 +15,12 @@ WebMCP-capable agent connected to the tab calls the exact same logic via tools r
 |-------|------------|
 | Framework | TanStack Start |
 | Frontend | React 19, TanStack Router v1 |
-| Build | Vite 7 + Nitro |
+| Build | Vite 7 |
 | Styling | Tailwind CSS 4 |
-| Database | Neon Postgres via Drizzle ORM |
+| Database | Cloudflare D1 (SQLite) via Drizzle ORM |
 | Agent interface | WebMCP (`document.modelContext.registerTool`) via `@mcp-b/global` |
 | Language | TypeScript 5.7 (strict mode) |
-| Deployment | Vercel |
+| Deployment | Cloudflare Workers |
 
 ## Directory Structure
 
