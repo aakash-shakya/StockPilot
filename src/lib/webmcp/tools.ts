@@ -476,7 +476,7 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'get_inventory_health_check',
     title: 'Run inventory health check',
     description:
-      'Run a full diagnostic sweep: low stock, stockouts, dead stock, abnormal sales changes, supplier delays, overdue POs, risk concentration, and single-supplier dependency. Returns every issue found with severity and recommended action. Use this for a raw diagnostic view; for a prioritized briefing, use what_should_i_worry_about.',
+      'Run a full diagnostic sweep: low stock, stockouts, dead stock, abnormal sales changes, supplier delays, overdue POs, risk concentration, and single-supplier dependency. Returns every issue found with severity and recommended action. Use this for a raw diagnostic view; for a prioritized briefing, use what_should_i_worry_about. After presenting results, use navigate_to to take the user to the relevant page (e.g. "/" for dashboard, "/products" for product list), highlight_product to draw attention to the most critical item, and scroll_to_section to focus on the relevant data section.',
     inputSchema: toJsonSchema(getInventoryHealthCheckSchema),
     annotations: {
       readOnlyHint: true,
@@ -498,7 +498,7 @@ const ANALYZE_TOOLS: ToolDef[] = [
     name: 'what_should_i_worry_about',
     title: 'What should I worry about today?',
     description:
-      'Get a single prioritized operational briefing: pending agent approvals first, then the highest-severity inventory health issues. Use this for a quick actionable summary. For the full dashboard readout with health score, budget, and supplier alerts, use get_morning_briefing instead.',
+      'Get a single prioritized operational briefing: pending agent approvals first, then the highest-severity inventory health issues. Use this for a quick actionable summary. For the full dashboard readout with health score, budget, and supplier alerts, use get_morning_briefing instead. After presenting results, use navigate_to to take the user to the relevant page (e.g. "/" for dashboard, "/products/:id" for a specific product), highlight_product to draw attention to the most critical item, and scroll_to_section to focus on the relevant data section.',
     inputSchema: toJsonSchema(whatShouldIWorryAboutSchema),
     annotations: {
       readOnlyHint: true,
@@ -697,7 +697,8 @@ const ANALYZE_TOOLS: ToolDef[] = [
     description:
       'Analyze profitability across all products: sales velocity, profit margin per unit, and projected monthly revenue and profit. ' +
       'Use this to answer questions like "which products will make me $1000 this month?" or "what are my most profitable products?" ' +
-      'Filter by category, supplier, or minimum profit threshold. Sort by monthly profit, velocity, or margin.',
+      'Filter by category, supplier, or minimum profit threshold. Sort by monthly profit, velocity, or margin. ' +
+      'After presenting results, use highlight_product to draw attention to the top product, and navigate_to to take the user to the relevant page (e.g. "/sales" for sales history, "/products/:id" for a specific product).',
     inputSchema: toJsonSchema(
       z.object({
         category: z.string().optional().describe('Filter by product category'),
@@ -772,7 +773,7 @@ const CREATE_TOOLS: ToolDef[] = [
     name: 'create_product_from_draft',
     title: 'Create product from a reviewed draft',
     description:
-      'Add a new product to the live catalog from a draft produced by generate_product. This is CONSEQUENTIAL — it creates a real, permanent catalog entry. Only call this after a human has reviewed and approved the specific draft.',
+      'Add a new product to the live catalog from a draft produced by generate_product. This is CONSEQUENTIAL — it creates a real, permanent catalog entry. Only call this after a human has reviewed and approved the specific draft. If the user mentions a supplier name, verify it exists using list_suppliers. If not found, ask the user whether to create a new supplier first or use an existing one — do not assume or default to a different supplier.',
     inputSchema: toJsonSchema(createProductFromDraftSchema),
     annotations: {
       readOnlyHint: false,
@@ -859,7 +860,7 @@ const MUTATE_TOOLS: ToolDef[] = [
     name: 'update_stock',
     title: 'Update stock',
     description:
-      "Directly adjust a product's stock count for manual corrections or transfers (not for recording ordinary sales, and not for receiving a purchase order — use receive_shipment for that). This is CONSEQUENTIAL — it changes the real, live stock count. Confirm the reason and quantity with the shop owner before calling it.",
+      "Directly adjust a product's stock count for manual corrections or transfers (not for recording ordinary sales, and not for receiving a purchase order — use receive_shipment for that). This is CONSEQUENTIAL — it changes the real, live stock count. Confirm the reason and quantity with the shop owner before calling it. Do NOT use this to add stock in order to then sell it via create_sale. If a sale fails due to insufficient stock, tell the user the item is out of stock and suggest restocking via propose_replenishment or create_purchase_order.",
     inputSchema: toJsonSchema(updateStockSchema),
     annotations: {
       readOnlyHint: false,
@@ -897,7 +898,7 @@ const MUTATE_TOOLS: ToolDef[] = [
     name: 'create_sale',
     title: 'Record a sale (POS)',
     description:
-      'Record a point-of-sale transaction: decrement stock for each item and log sale movements. This is CONSEQUENTIAL — it reduces real inventory counts. Use this when the agent processes a sale on behalf of the shop owner, or when the owner asks to ring up items. Confirm quantities and prices before calling.',
+      'Record a point-of-sale transaction: decrement stock for each item and log sale movements. This is CONSEQUENTIAL — it reduces real inventory counts. Use this when the agent processes a sale on behalf of the shop owner, or when the owner asks to ring up items. Confirm quantities and prices before calling. Before calling this, verify sufficient stock using get_product or list_inventory. If stock is insufficient, inform the user and suggest restocking.',
     inputSchema: toJsonSchema(
       z.object({
         items: z.array(
@@ -1014,17 +1015,25 @@ const NAVIGATE_TOOLS: ToolDef[] = [
     },
     readOnly: true,
     run: async (input) => {
-      window.dispatchEvent(
-        new CustomEvent('agent:highlight', { detail: { productId: input.productId, durationMs: input.durationMs ?? 4000 } }),
-      )
-      return { summary: `Highlighting product ${input.productId}`, payload: { highlighted: true, productId: input.productId } }
+      const el = document.querySelector(`[data-product-id="${input.productId}"]`)
+      if (el) {
+        window.dispatchEvent(
+          new CustomEvent('agent:highlight', { detail: { productId: input.productId, durationMs: input.durationMs ?? 4000 } }),
+        )
+        return { summary: `Highlighted product ${input.productId}`, payload: { highlighted: true, productId: input.productId } }
+      } else {
+        window.dispatchEvent(
+          new CustomEvent('agent:highlight-miss', { detail: { productId: input.productId } }),
+        )
+        return { summary: `Product #${input.productId} not visible on this page`, payload: { highlighted: false, productId: input.productId } }
+      }
     },
   },
   {
     name: 'scroll_to_section',
     title: 'Scroll to a section of the page',
     description:
-      'Scroll the page to a specific section. Can target by CSS selector, heading text, or element ID. Use this to direct the user\'s attention to a particular area — e.g. a product table, a form, a specific card, or a heading like "Stock Health".',
+      'Scroll the page to a specific section. Can target by CSS selector, heading text, or element ID. Use this to direct the user\'s attention to a particular area. Use headingText for dashboard sections (e.g. "Stock Health", "At-Risk Products", "Agent Activity"). Use selector for page-specific elements (e.g. "[data-product-id=\'3\']" for a product card, "table" for a table). Use elementId for known DOM IDs.',
     inputSchema: toJsonSchema(
       z.object({
         selector: z.string().optional().describe('CSS selector to scroll to (e.g. "table", "#my-id", ".card")'),
@@ -1394,10 +1403,48 @@ const COLLABORATE_TOOLS: ToolDef[] = [
       title: 'Propose a Smart Replenishment plan for approval',
     },
     readOnly: false,
-    navigateTo: '/agent-actions',
+    navigateTo: '/actions',
     run: async (input) => {
+      // Smart dedup: check for existing pending replenishment proposals for the same supplier + products
+      const pending = await listAgentActionsFn({ data: { status: 'pending' } })
+      const pendingReplenishments = pending.filter((a: any) => a.type === 'replenishment')
+
+      // Build the new plan to see what would be proposed
+      const plan = await buildReplenishmentPlanFn({ data: input })
+
+      const existingIds: number[] = []
+      const newGroups: typeof plan.groupedBySupplier = []
+
+      for (const group of plan.groupedBySupplier) {
+        const incomingProductIds = new Set(group.items.map((i: any) => i.productId))
+        const match = pendingReplenishments.find((a: any) => {
+          const payload = JSON.parse(a.payload as string)
+          if (payload.supplierId !== group.supplierId) return false
+          const pendingProductIds = new Set(payload.items.map((i: any) => i.productId))
+          // Match if all incoming products are already in the pending proposal
+          return [...incomingProductIds].every((id: number) => pendingProductIds.has(id))
+        })
+        if (match) {
+          existingIds.push(match.id)
+        } else {
+          newGroups.push(group)
+        }
+      }
+
+      // All duplicates — return early with existing proposal IDs
+      if (newGroups.length === 0 && existingIds.length > 0) {
+        return {
+          summary: `All ${existingIds.length} supplier group(s) already have pending proposals (IDs: ${existingIds.join(', ')})`,
+          payload: { duplicates: true, existingActionIds: existingIds },
+        }
+      }
+
+      // Create only new proposals
       const proposals = await createReplenishmentProposalsFn({ data: input })
-      return { summary: `Filed ${proposals.length} replenishment proposal(s) for approval`, payload: proposals }
+      return {
+        summary: `Filed ${proposals.length} new proposal(s) (${existingIds.length} already pending)`,
+        payload: { new: proposals, existingActionIds: existingIds },
+      }
     },
   },
   {
@@ -1414,7 +1461,7 @@ const COLLABORATE_TOOLS: ToolDef[] = [
       title: 'Approve a pending agent action',
     },
     readOnly: false,
-    navigateTo: '/agent-actions',
+    navigateTo: '/actions',
     run: async (input) => {
       const result = await decideAgentActionFn({ data: { actionId: input.actionId, decision: 'approved' } })
       return { summary: `Action ${input.actionId} ${result?.status}: ${result?.resultSummary ?? ''}`, payload: result }
@@ -1433,7 +1480,7 @@ const COLLABORATE_TOOLS: ToolDef[] = [
       title: 'Reject a pending agent action',
     },
     readOnly: false,
-    navigateTo: '/agent-actions',
+    navigateTo: '/actions',
     run: async (input) => {
       const result = await decideAgentActionFn({ data: { actionId: input.actionId, decision: 'rejected' } })
       return { summary: `Action ${input.actionId} rejected`, payload: result }
@@ -1557,8 +1604,14 @@ export async function registerInventoryWebMCPTools(): Promise<() => void> {
                 data: { toolName: tool.name, input, summary, consequential: !tool.readOnly },
               }).catch(() => {})
               // Navigate to relevant page after successful execution
-              if (tool.navigateTo && !opts?.signal?.aborted) {
-                window.dispatchEvent(new CustomEvent('agent:navigate', { detail: { path: tool.navigateTo } }))
+              if (tool.navigateTo) {
+                const fire = () => window.dispatchEvent(new CustomEvent('agent:navigate', { detail: { path: tool.navigateTo } }))
+                if (!opts?.signal?.aborted) {
+                  fire()
+                } else {
+                  // Fallback: navigate even if signal was aborted (agent disconnect)
+                  setTimeout(fire, 500)
+                }
               }
               if ((tool as any).outputSchema) return toolSuccess(payload, payload)
               return toolSuccess(payload)

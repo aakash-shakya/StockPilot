@@ -112,6 +112,7 @@ function RootComponent() {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isAuthPage = pathname === '/login' || pathname === '/register'
   const [agentPanelOpen, setAgentPanelOpen] = useState(false)
+  const [linkNotification, setLinkNotification] = useState<{ productId: number; path: string; label: string } | null>(null)
 
   // Client-side auth guard: redirect to login if no token on initial load
   useEffect(() => {
@@ -162,6 +163,14 @@ function RootComponent() {
         setTimeout(() => el.classList.remove('ring-2', 'ring-emerald-400', 'ring-offset-2', 'animate-pulse'), durationMs)
       }
     }
+    const handleHighlightMiss = (e: Event) => {
+      const { productId } = (e as CustomEvent).detail
+      setLinkNotification({
+        productId,
+        path: `/products/${productId}`,
+        label: `Product #${productId}`,
+      })
+    }
     const handleScroll = (e: Event) => {
       const { headingText, elementId } = (e as CustomEvent).detail
       let target: Element | null = null
@@ -179,10 +188,12 @@ function RootComponent() {
     }
     window.addEventListener('agent:navigate', handleNavigate)
     window.addEventListener('agent:highlight', handleHighlight)
+    window.addEventListener('agent:highlight-miss', handleHighlightMiss)
     window.addEventListener('agent:scroll', handleScroll)
     return () => {
       window.removeEventListener('agent:navigate', handleNavigate)
       window.removeEventListener('agent:highlight', handleHighlight)
+      window.removeEventListener('agent:highlight-miss', handleHighlightMiss)
       window.removeEventListener('agent:scroll', handleScroll)
     }
   }, [router])
@@ -223,6 +234,27 @@ function RootComponent() {
           </AnimatePresence>
         </div>
         <WebMcpProvider />
+        {/* Sticky notification for highlight-miss: shows clickable link when product isn't on current page */}
+        {linkNotification && (
+          <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-blue-600 text-white px-4 py-2.5 rounded-lg shadow-lg flex items-center gap-3 text-sm font-medium">
+            <span>{linkNotification.label} — not on this page</span>
+            <button
+              className="underline font-semibold hover:text-blue-200"
+              onClick={() => {
+                router.navigate({ to: linkNotification.path })
+                setLinkNotification(null)
+              }}
+            >
+              View Product →
+            </button>
+            <button
+              onClick={() => setLinkNotification(null)}
+              className="ml-1 text-white/60 hover:text-white"
+            >
+              ×
+            </button>
+          </div>
+        )}
       </ToastProvider>
     </div>
   )
