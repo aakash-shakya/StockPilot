@@ -1403,7 +1403,7 @@ const COLLABORATE_TOOLS: ToolDef[] = [
       title: 'Propose a Smart Replenishment plan for approval',
     },
     readOnly: false,
-    navigateTo: '/agent-actions',
+    navigateTo: '/actions',
     run: async (input) => {
       // Smart dedup: check for existing pending replenishment proposals for the same supplier + products
       const pending = await listAgentActionsFn({ data: { status: 'pending' } })
@@ -1461,7 +1461,7 @@ const COLLABORATE_TOOLS: ToolDef[] = [
       title: 'Approve a pending agent action',
     },
     readOnly: false,
-    navigateTo: '/agent-actions',
+    navigateTo: '/actions',
     run: async (input) => {
       const result = await decideAgentActionFn({ data: { actionId: input.actionId, decision: 'approved' } })
       return { summary: `Action ${input.actionId} ${result?.status}: ${result?.resultSummary ?? ''}`, payload: result }
@@ -1480,7 +1480,7 @@ const COLLABORATE_TOOLS: ToolDef[] = [
       title: 'Reject a pending agent action',
     },
     readOnly: false,
-    navigateTo: '/agent-actions',
+    navigateTo: '/actions',
     run: async (input) => {
       const result = await decideAgentActionFn({ data: { actionId: input.actionId, decision: 'rejected' } })
       return { summary: `Action ${input.actionId} rejected`, payload: result }

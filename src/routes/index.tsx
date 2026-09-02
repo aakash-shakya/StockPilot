@@ -163,7 +163,7 @@ function Dashboard() {
                 </div>
                 <h2 className="text-sm font-semibold text-slate-900">Agent Actions</h2>
               </div>
-              <Link to="/agent-actions">
+              <Link to="/actions">
                 <Button variant="secondary" size="xs">Review →</Button>
               </Link>
             </div>

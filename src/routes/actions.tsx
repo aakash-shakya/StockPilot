@@ -7,7 +7,7 @@ import { ActionStatusBadge, ImpactBadge } from '../components/badges.js'
 import { Button } from '../components/ui/Button.js'
 import { Badge } from '../components/ui/Badge.js'
 
-export const Route = createFileRoute('/agent-actions')({
+export const Route = createFileRoute('/actions')({
   component: AgentActionsPage,
   loader: async () => ({ actions: await listAgentActionsFn({ data: {} }) }),
 })

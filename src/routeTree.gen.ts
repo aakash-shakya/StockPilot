@@ -10,7 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AgentActionsRouteImport } from './routes/agent-actions'
+import { Route as ActionsRouteImport } from './routes/actions'
 import { Route as AgentToolsRouteImport } from './routes/agent-tools'
 import { Route as HealthRouteImport } from './routes/health'
 import { Route as LoginRouteImport } from './routes/login'
@@ -30,9 +30,9 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AgentActionsRoute = AgentActionsRouteImport.update({
-  id: '/agent-actions',
-  path: '/agent-actions',
+const ActionsRoute = ActionsRouteImport.update({
+  id: '/actions',
+  path: '/actions',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AgentToolsRoute = AgentToolsRouteImport.update({
@@ -103,7 +103,7 @@ const ProductsNewRoute = ProductsNewRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/agent-actions': typeof AgentActionsRoute
+  '/actions': typeof ActionsRoute
   '/agent-tools': typeof AgentToolsRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
@@ -120,7 +120,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agent-actions': typeof AgentActionsRoute
+  '/actions': typeof ActionsRoute
   '/agent-tools': typeof AgentToolsRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
@@ -138,7 +138,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/agent-actions': typeof AgentActionsRoute
+  '/actions': typeof ActionsRoute
   '/agent-tools': typeof AgentToolsRoute
   '/health': typeof HealthRoute
   '/login': typeof LoginRoute
@@ -157,7 +157,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/agent-actions'
+    | '/actions'
     | '/agent-tools'
     | '/health'
     | '/login'
@@ -174,7 +174,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/agent-actions'
+    | '/actions'
     | '/agent-tools'
     | '/health'
     | '/login'
@@ -191,7 +191,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/agent-actions'
+    | '/actions'
     | '/agent-tools'
     | '/health'
     | '/login'
@@ -209,7 +209,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AgentActionsRoute: typeof AgentActionsRoute
+  ActionsRoute: typeof ActionsRoute
   AgentToolsRoute: typeof AgentToolsRoute
   HealthRoute: typeof HealthRoute
   LoginRoute: typeof LoginRoute
@@ -232,11 +232,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agent-actions': {
-      id: '/agent-actions'
-      path: '/agent-actions'
-      fullPath: '/agent-actions'
-      preLoaderRoute: typeof AgentActionsRouteImport
+    '/actions': {
+      id: '/actions'
+      path: '/actions'
+      fullPath: '/actions'
+      preLoaderRoute: typeof ActionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/agent-tools': {
@@ -349,7 +349,7 @@ const ProductsRouteWithChildren = ProductsRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AgentActionsRoute: AgentActionsRoute,
+  ActionsRoute: ActionsRoute,
   AgentToolsRoute: AgentToolsRoute,
   HealthRoute: HealthRoute,
   LoginRoute: LoginRoute,
