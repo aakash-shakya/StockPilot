@@ -1059,6 +1059,9 @@ export async function createProductFromDraft(input: {
   const [existingSku] = await db.select({ id: products.id }).from(products).where(eq(products.sku, input.sku))
   if (existingSku) throw new Error(`SKU ${input.sku} already exists`)
 
+  const [existingName] = await db.select({ id: products.id }).from(products).where(eq(products.name, input.name))
+  if (existingName) throw new Error(`Product "${input.name}" already exists (ID: ${existingName.id}). Use the existing product instead.`)
+
   const [supplier] = await db.select().from(suppliers).where(eq(suppliers.id, input.supplierId))
   if (!supplier) throw new Error('Unknown supplier')
 
@@ -1862,7 +1865,7 @@ export async function getMorningBriefing() {
   const topAction = plan.items[0] ?? null
   const healthScore = Math.max(
     0,
-    100 - health.highSeverityCount * 15 - health.mediumSeverityCount * 5 - health.lowSeverityCount * 1,
+    100 - health.highSeverityCount * 10 - health.mediumSeverityCount * 3 - health.lowSeverityCount * 0.5,
   )
 
   return {
